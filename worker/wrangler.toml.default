@@ -1,0 +1,20 @@
+name = "comet-trail"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+
+# Bind the route(s) where this worker should run.
+# Replace example.com with the domain you want to track.
+# The domain must already be on Cloudflare (nameservers pointed at CF).
+routes = [
+  { pattern = "example.com/*",     zone_name = "example.com" },
+  { pattern = "www.example.com/*", zone_name = "example.com" },
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "comet-trail"
+database_id = "REPLACE_ME_WITH_OUTPUT_FROM_wrangler_d1_create"
+
+# Optional: turn on observability so `wrangler tail` shows worker logs.
+[observability]
+enabled = true

@@ -1,0 +1,16 @@
+{
+  "name": "comet-trail-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evergreen crawl collector: a Cloudflare Worker that intercepts bot traffic, extracts SEO data, and stores it in D1.",
+  "scripts": {
+    "dev": "wrangler dev --remote",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute comet-trail --remote --file=../schema.sql",
+    "db:recent": "wrangler d1 execute comet-trail --remote --command \"SELECT url, status, response_time_ms, title, bot_name, datetime(ts/1000,'unixepoch') AS seen FROM crawls ORDER BY ts DESC LIMIT 20\"",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.94.0"
+  }
+}

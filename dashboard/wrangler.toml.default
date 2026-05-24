@@ -1,0 +1,10 @@
+name = "comet-trail-dashboard"
+pages_build_output_dir = "public"
+compatibility_date = "2026-05-01"
+
+# Read-only view over the same D1 the worker writes to.
+# Use the SAME database_id as worker/wrangler.toml.
+[[d1_databases]]
+binding = "DB"
+database_name = "comet-trail"
+database_id = "REPLACE_ME_SAME_ID_AS_WORKER"

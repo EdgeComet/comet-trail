@@ -1,0 +1,31 @@
+# Local Cloudflare config — contains your D1 database_id and live domain.
+# In each subproject, copy wrangler.toml.default to wrangler.toml and fill in
+# your values. Matches worker/wrangler.toml and dashboard/wrangler.toml.
+wrangler.toml
+
+# Cloudflare local dev secrets (never commit)
+.dev.vars
+.dev.vars.*
+
+# Dependencies
+node_modules/
+
+# Wrangler local state / build output
+.wrangler/
+dist/
+
+# Data dumps (see README "Querying the data")
+crawls.json
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,16 @@
+{
+  "name": "comet-trail",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evergreen crawl proof of concept. Monorepo: worker/ collects bot crawls into D1; dashboard/ reads them.",
+  "workspaces": [
+    "worker",
+    "dashboard"
+  ],
+  "scripts": {
+    "deploy:worker": "npm -w worker run deploy",
+    "deploy:dashboard": "npm -w dashboard run deploy",
+    "db:init": "npm -w worker run db:init",
+    "db:recent": "npm -w worker run db:recent"
+  }
+}
