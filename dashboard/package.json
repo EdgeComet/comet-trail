@@ -2,6 +2,7 @@
   "name": "comet-trail-dashboard",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Base read-only dashboard for CometTrail crawl data (Cloudflare Pages + D1).",
   "scripts": {
     "dev": "wrangler pages dev",
@@ -9,5 +10,8 @@
   },
   "devDependencies": {
     "wrangler": "^4.94.0"
+  },
+  "dependencies": {
+    "@cloudflare/pages-plugin-cloudflare-access": "^1.0.5"
   }
 }

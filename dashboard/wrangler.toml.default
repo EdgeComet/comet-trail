@@ -8,3 +8,10 @@ compatibility_date = "2026-05-01"
 binding = "DB"
 database_name = "comet-trail"
 database_id = "REPLACE_ME_SAME_ID_AS_WORKER"
+
+# Cloudflare Access auth (see README "Locking the dashboard behind Cloudflare Access").
+# Public identifiers, not secrets, but account-specific. The middleware in
+# functions/_middleware.js reads these to verify the Access JWT.
+[vars]
+CF_ACCESS_TEAM_DOMAIN = "https://REPLACE_ME.cloudflareaccess.com"
+CF_ACCESS_AUD = "REPLACE_ME_AUD_TAG"

@@ -2,6 +2,7 @@
   "name": "comet-trail-worker",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Evergreen crawl collector: a Cloudflare Worker that intercepts bot traffic, extracts SEO data, and stores it in D1.",
   "scripts": {
     "dev": "wrangler dev --remote",

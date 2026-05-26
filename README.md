@@ -56,33 +56,45 @@ This is a small monorepo (npm workspaces):
 git clone <this repo>
 cd comet-trail
 npm install          # installs both workspaces
-npx wrangler login
 ```
 
-`wrangler.toml` is gitignored in each subproject (it holds your `database_id` and live domain). Create each from its committed `wrangler.toml.default` template:
+### Install with Claude Code (recommended)
 
-```bash
-cp worker/wrangler.toml.default       worker/wrangler.toml
-cp dashboard/wrangler.toml.default     dashboard/wrangler.toml
+Open this repo in [Claude Code](https://claude.com/claude-code) and run:
+
+```
+/install
 ```
 
-Create the D1 database and copy the printed `database_id` into **both** `wrangler.toml` files (the worker writes it, the dashboard reads it):
+It does the whole setup for you from **one** Cloudflare API token: creates the D1
+database, fills in both `wrangler.toml` files, picks your domain and wires the
+worker routes, applies the schema, deploys, and verifies that a bot crawl is
+actually captured. It can optionally lock the dashboard behind Cloudflare Access
+(email login) end-to-end — including the parts that normally require clicking
+through the Zero Trust dashboard.
 
-```bash
-npx wrangler d1 create comet-trail
-```
+The only thing you do by hand is create the token (you can't make an API token
+without one). At <https://dash.cloudflare.com/profile/api-tokens> → **Create
+Token → Create Custom Token**, add these permissions:
 
-Apply the schema, then point the worker at your domain — edit `worker/wrangler.toml` and replace both `example.com` lines in the `routes` block. Optionally edit `worker/src/index.js` to tweak the `BOTS` list:
+| Permission | Scope | Needed for |
+|---|---|---|
+| Workers Scripts · Edit | Account | deploy the worker |
+| Workers Routes · Edit | Zone | bind the worker to your domain |
+| D1 · Edit | Account | create + query the database |
+| Cloudflare Pages · Edit | Account | deploy the dashboard |
+| Zone · Read | Zone | find your domain |
+| Account Settings · Read | Account | resolve your account |
+| Access: Apps and Policies · Edit | Account | *(only if locking the dashboard)* |
+| Access: Organizations, IdPs, and Groups · Edit | Account | *(only if locking the dashboard)* |
+| DNS · Edit | Zone | *(only if locking the dashboard)* |
 
-```bash
-npm run db:init
-```
+Paste the token when `/install` asks. **Never commit it or paste it into a
+file** — it's only held in memory during the run, and you can revoke it after.
 
-Deploy the worker:
-
-```bash
-npm run deploy:worker
-```
+> Not using Claude Code? The same steps run as `npm run setup -- <verb>` (see
+> `scripts/ct-install.mjs` for the verb list), or follow [`docs/manual-setup.md`](docs/manual-setup.md)
+> to do it entirely by hand.
 
 ## Verify it works
 
@@ -100,7 +112,7 @@ npm run db:recent
 
 You should see one row per `curl`. Loading the same page from a normal browser should produce **no** row (only bot UAs are captured).
 
-`npx wrangler tail` streams worker logs in real time — useful while you're getting the route wired up.
+`npm run tail` streams worker logs in real time — useful while you're getting the route wired up.
 
 ## Dashboard
 
@@ -110,7 +122,19 @@ You should see one row per `curl`. Loading the same page from a normal browser s
 npm run deploy:dashboard      # wrangler pages deploy
 ```
 
-Local preview against your D1: `cd dashboard && npx wrangler pages dev`. Charts, filters, and auth are intentionally out of scope here.
+Local preview against your D1: `cd dashboard && npx wrangler pages dev`. Charts and filters are intentionally out of scope here.
+
+### Locking the dashboard behind Cloudflare Access
+
+`/install` **asks** whether to lock the dashboard, and locking is the recommended path — so a dashboard set up through the installer is normally private, behind email login. Choose "lock it" and the installer does the whole Cloudflare Access setup for you (One-Time PIN provider, Access application, allow policy, custom domain, the `CF_ACCESS_*` `[vars]`, and the deploy — in the correct order, all from your API token).
+
+Access enforcement is **opt-in at the code level**: the middleware in `dashboard/functions/_middleware.js` only enforces once the `CF_ACCESS_*` `[vars]` hold real values. Until then — if you decline the lockdown in `/install`, or run a plain `npm run deploy:dashboard` without setting those vars — it serves the page to anyone. So an unconfigured deploy is unprotected; a completed lockdown is private.
+
+Once the vars are real, the middleware verifies the Access token on every request, which also locks the raw `*.pages.dev` URL and preview deployments — not just your custom domain. Login is enforced at the edge; who gets in is decided by the Access policy (allowed emails / domains), the single source of truth.
+
+A **custom domain is required** either way: Cloudflare Access can only protect a hostname on a zone in your own account, so it can't sit in front of `*.pages.dev`.
+
+Prefer to set it up by hand? The full step-by-step (custom domain, One-Time PIN, Access application, allow policy, and the `[vars]` to copy) is in [`docs/manual-setup.md`](docs/manual-setup.md#locking-the-dashboard-behind-cloudflare-access).
 
 ## Querying the data
 
@@ -132,7 +156,7 @@ npx wrangler d1 execute comet-trail --remote --json \
 ## What's deliberately left out
 
 - **Bot verification.** UA match only — spoofed Googlebot UAs will be stored as if real. To filter, check `request.cf.verifiedBotCategory` in `index.js` before the BOTS lookup, or do a reverse-DNS verification.
-- **Full dashboard.** `dashboard/` shows only a total count so far. Charts, filters, the per-URL time machine, and auth are a separate build on top of the `docs/queries.md` queries.
+- **Full dashboard.** `dashboard/` shows only a total count so far. Charts, filters, and the per-URL time machine are a separate build on top of the `docs/queries.md` queries. (Auth is available now — see "Locking the dashboard behind Cloudflare Access".)
 - **JS rendering.** The worker sees what the origin sends, not what the bot renders after running JS. For JS-heavy SPAs the captured HTML may be near-empty.
 - **Retention / cleanup.** Append-only. If growth becomes a concern, add a scheduled trigger that prunes rows older than N days.
 - **Non-HTML resources.** robots.txt, sitemap.xml, images, CSS, JS are not captured. Add a special-case branch if you want to track changes to robots.txt or sitemaps.
@@ -144,9 +168,12 @@ Each is a small addition — the code is intentionally short so it's easy to rea
 ```
 .
 ├── README.md                  you are here
-├── package.json               workspaces + top-level scripts (deploy:worker, deploy:dashboard, db:*)
+├── package.json               workspaces + top-level scripts (setup, deploy:*, db:*)
 ├── schema.sql                 shared: crawls table + indexes
 ├── docs/queries.md            shared: sample SQL for SEO analysis
+├── docs/manual-setup.md       hand-run setup + Access lockdown (the /install alternative)
+├── scripts/ct-install.mjs     installer helper: idempotent CF API + wrangler verbs
+├── .claude/commands/install.md  the /install flow that drives the helper
 ├── worker/                    the collector
 │   ├── src/index.js           the worker (~150 lines)
 │   ├── wrangler.toml.default  config template — copy to wrangler.toml
@@ -155,6 +182,7 @@ Each is a small addition — the code is intentionally short so it's easy to rea
 └── dashboard/                 base Cloudflare Pages app (reads the same D1)
     ├── public/index.html      single page: shows total requests
     ├── functions/api/summary.js   D1 COUNT(*) → JSON
+    ├── functions/_middleware.js   optional Cloudflare Access lock (off until configured)
     ├── wrangler.toml.default  Pages config template (same database_id)
     ├── wrangler.toml          gitignored
     └── package.json           scripts: dev, deploy
