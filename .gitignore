@@ -17,6 +17,10 @@ dist/
 # Data dumps (see README "Querying the data")
 crawls.json
 
+# Generated local demo seed (built on the fly by `npm run dev:local`).
+# Source of truth is scripts/seed-demo.mjs.
+dashboard/seed.local.sql
+
 # Editor / IDE
 .idea/
 .vscode/

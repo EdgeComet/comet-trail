@@ -151,3 +151,58 @@ SELECT DISTINCT url
 FROM crawls
 WHERE url NOT IN (SELECT url FROM crawls WHERE status BETWEEN 200 AND 299);
 ```
+
+## Indexation status breakdown (latest snapshot per URL)
+
+`index_status` is `indexable`, `non_200`, `blocked_by_meta`, or `non_canonical`.
+This collapses the time machine to each URL's most recent visit, then counts.
+
+```sql
+WITH latest AS (
+  SELECT c.url, c.index_status,
+         ROW_NUMBER() OVER (PARTITION BY c.url ORDER BY c.ts DESC) AS rn
+  FROM crawls c
+)
+SELECT index_status, COUNT(*) AS urls
+FROM latest
+WHERE rn = 1
+GROUP BY index_status
+ORDER BY urls DESC;
+```
+
+## URLs blocked from indexing, with the offending directives
+
+```sql
+SELECT url, index_status, meta_robots, meta_googlebot,
+       datetime(ts/1000,'unixepoch') AS seen
+FROM crawls
+WHERE index_status IN ('blocked_by_meta', 'non_canonical')
+ORDER BY ts DESC;
+```
+
+## URLs whose indexation status flipped across two visits
+
+```sql
+WITH ranked AS (
+  SELECT url, index_status, ts,
+         ROW_NUMBER() OVER (PARTITION BY url ORDER BY ts DESC) AS rn
+  FROM crawls
+  WHERE index_status IS NOT NULL
+)
+SELECT a.url,
+       datetime(b.ts/1000,'unixepoch') AS earlier_seen, b.index_status AS earlier_status,
+       datetime(a.ts/1000,'unixepoch') AS later_seen,   a.index_status AS later_status
+FROM ranked a
+JOIN ranked b ON a.url = b.url AND a.rn = 1 AND b.rn = 2
+WHERE a.index_status != b.index_status;
+```
+
+## Structured-data types seen across the site
+
+```sql
+SELECT json_each.value AS type, COUNT(DISTINCT c.url) AS urls
+FROM crawls c, json_each(c.structured_data_types)
+WHERE c.status = 200
+GROUP BY type
+ORDER BY urls DESC;
+```
