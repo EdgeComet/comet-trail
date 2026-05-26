@@ -6,6 +6,10 @@
   "description": "Base read-only dashboard for CometTrail crawl data (Cloudflare Pages + D1).",
   "scripts": {
     "dev": "wrangler pages dev",
+    "dev:local": "npm run db:local:schema && npm run db:local:seed && wrangler pages dev --binding CF_ACCESS_TEAM_DOMAIN=REPLACE_ME CF_ACCESS_AUD=REPLACE_ME --live-reload",
+    "dev:remote": "wrangler pages dev --remote --binding CF_ACCESS_TEAM_DOMAIN=REPLACE_ME CF_ACCESS_AUD=REPLACE_ME",
+    "db:local:schema": "wrangler d1 execute comet-trail --local --file=../schema.sql",
+    "db:local:seed": "wrangler d1 execute comet-trail --local --file=seed.local.sql",
     "deploy": "wrangler pages deploy"
   },
   "devDependencies": {

@@ -1,0 +1,470 @@
+/* CometTrail dashboard — design foundation.
+ *
+ * Extracted from jsbug (jsbug.org) so the dashboard shares its visual language:
+ * monospace-first, a warm coral accent on cool blue/slate tones, light + dark
+ * themes. Plain CSS — no build step. Tokens keep jsbug's exact variable names;
+ * component classes are global kebab-case (.btn, .card, .data-table, ...).
+ *
+ * Source of the token values: jsbug/frontend/src/index.css.
+ * Default theme is light (:root). Opt into dark with <html data-theme="dark">.
+ */
+
+/* ========================================
+   Design tokens — light (default)
+   ======================================== */
+:root {
+  /* Light backgrounds */
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #EEF2F7;
+  --bg-tertiary: #E2E8F0;
+  --bg-white: #FFFFFF;
+
+  /* Dark accents (header bar, dark surfaces) */
+  --dark-primary: #0A1628;
+  --dark-secondary: #152238;
+  --dark-tertiary: #1E3A5F;
+
+  /* Accent colors */
+  --accent-coral: #FF6B4A;
+  --accent-coral-dark: #E55A3A;
+  --accent-orange: #FF8C42;
+  --electric-blue: #0EA5E9;
+  --electric-blue-dark: #0284C7;
+
+  /* Text colors */
+  --text-dark: #0F172A;
+  --text-body: #334155;
+  --text-muted: #64748B;
+  --text-dim: #94A3B8;
+  --text-light: #F1F5F9;
+
+  /* Status colors */
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-light: #FEF3C7;
+  --warning-lighter: #F5F4EF;
+  --error: #EF4444;
+  --error-light: #FEE2E2;
+
+  /* Borders */
+  --border-light: #E2E8F0;
+  --border-medium: #CBD5E1;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+
+  /* Resource / category type colors (bots, resource types, ...) */
+  --type-document: #3B82F6;
+  --type-script: #F59E0B;
+  --type-stylesheet: #8B5CF6;
+  --type-image: #22C55E;
+  --type-font: #EC4899;
+  --type-xhr: #06B6D4;
+  --type-other: #6B7280;
+
+  /* Table header sort */
+  --table-header-sort-bg: #E0F2FE;
+  --table-header-sort-text: #0EA5E9;
+}
+
+/* ========================================
+   Design tokens — dark (GitHub-inspired)
+   ======================================== */
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-primary: #151e29;
+  --bg-secondary: #141a24;
+  --bg-tertiary: #1e232b;
+  --bg-white: #18202b;
+
+  /* Text */
+  --text-dark: #f0f6fc;
+  --text-body: #c9d1d9;
+  --text-muted: #8b949e;
+  --text-dim: #6e7681;
+  --text-light: #f0f6fc;
+
+  /* Borders */
+  --border-light: #30363d;
+  --border-medium: #484f58;
+
+  /* Status colors — adjusted for dark backgrounds */
+  --success-light: rgba(16, 185, 129, 0.15);
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --warning-lighter: rgba(245, 158, 11, 0.08);
+  --error-light: rgba(239, 68, 68, 0.15);
+
+  /* Shadows — darker for dark mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+  /* Table header sort */
+  --table-header-sort-bg: #1a3a4a;
+  --table-header-sort-text: #38bdf8;
+}
+
+/* ========================================
+   Base
+   ======================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-body);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--electric-blue);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--electric-blue-dark);
+  text-decoration: underline;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Custom scrollbars (Webkit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-medium) var(--bg-secondary);
+}
+
+/* ========================================
+   Layout / containers
+   ======================================== */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--dark-primary);
+  padding: 16px 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--dark-tertiary);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: -0.02em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.main-content {
+  flex: 1;
+  padding: 32px 40px;
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+}
+
+.content-wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ========================================
+   Card / panel
+   ======================================== */
+.card,
+.panel {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.card-body {
+  padding: 16px;
+}
+
+/* Label/value rows inside a card */
+.result-row {
+  display: flex;
+  align-items: baseline;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.result-row:nth-child(even) {
+  background: var(--bg-primary);
+}
+
+.result-row:hover {
+  background: var(--bg-secondary);
+}
+
+.result-label {
+  width: 140px;
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.result-value {
+  flex: 1;
+  color: var(--text-dark);
+  word-break: break-word;
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent-coral);
+  color: #fff;
+}
+
+.btn-primary:not(:disabled):hover {
+  background: var(--accent-coral-dark);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-body);
+  border: 1px solid var(--border-light);
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: var(--bg-tertiary);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+}
+
+/* ========================================
+   Inputs / selects
+   ======================================== */
+.input,
+.select {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+}
+
+.input::placeholder {
+  color: var(--text-dim);
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--electric-blue);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.select {
+  appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+  /* chevron-down, stroke uses currentColor via the muted text token */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+/* Field label (sits above an input/select) */
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   Badges
+   ======================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Status badges — pill-shaped, paired light bg + solid text */
+.badge-success,
+.badge-warning,
+.badge-error {
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.badge-success {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.badge-error {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* ========================================
+   Data table
+   ======================================== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table td {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: top;
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-primary);
+}
