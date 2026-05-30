@@ -1,9 +1,11 @@
-// Dashboard entry point. Wires the theme toggle, builds the date-range store and
-// the provider/chart pairs, hooks up the preset buttons, and boots.
-import { DateRangeStore } from "./core/dateRange.js";
-import { Dashboard } from "./core/registry.js";
-import { MetricsProvider } from "./providers/metricsProvider.js";
-import { StatCardGroupChart } from "./charts/statCardGroupChart.js";
+// Dashboard entry point. Wires the theme toggle, then hands navigation to the
+// History API router: each sidebar link maps to a page view that paints itself
+// into the single <main> outlet. The Log Analyzer view carries the date-range
+// presets and stat cards; Indexation and Content are placeholders for now.
+import { Router } from "./core/router.js";
+import { renderLogAnalyzer } from "./pages/logAnalyzer.js";
+import { renderIndexation } from "./pages/indexation.js";
+import { renderContent } from "./pages/content.js";
 
 // --- Theme toggle: persist the choice and reflect it on <html data-theme>. ---
 function initThemeToggle() {
@@ -24,28 +26,12 @@ function initThemeToggle() {
   });
 }
 
-// --- Date-range preset buttons -> store.setDays (store fans out to charts). ---
-function initRangeButtons(dateRange) {
-  document.querySelectorAll(".range-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".range-btn").forEach((b) => {
-        const active = b === btn;
-        b.classList.toggle("active", active);
-        b.setAttribute("aria-pressed", String(active));
-      });
-      dateRange.setDays(Number(btn.dataset.range));
-    });
-  });
-}
-
 initThemeToggle();
 
-const dateRange = new DateRangeStore(30); // default: last 30 days
-const dashboard = new Dashboard(dateRange);
-
-dashboard.add(
-  new StatCardGroupChart(document.getElementById("metrics"), new MetricsProvider())
-);
-
-initRangeButtons(dateRange);
-dashboard.start(); // initial paint
+const router = new Router(document.getElementById("view-outlet"));
+router
+  .add("/log-analyzer", renderLogAnalyzer, "Log Analyzer")
+  .add("/indexation", renderIndexation, "Indexation")
+  .add("/content", renderContent, "Content");
+router.bindLinks();
+router.start("/log-analyzer"); // default view (also normalizes "/")

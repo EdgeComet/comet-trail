@@ -332,6 +332,60 @@ a:hover {
 }
 
 /* ========================================
+   Page header (per routed view)
+   ----------------------------------------
+   A title + subtitle block each page view renders above its body, so the
+   three routes (Log Analyzer / Indexation / Content) share one heading style.
+   ======================================== */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-dark);
+}
+
+.page-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   Empty state (placeholder pages)
+   ----------------------------------------
+   A card that stands in for a page whose widgets are not built yet. The lead
+   line introduces it; the list spells out the planned contents.
+   ======================================== */
+.empty-state {
+  max-width: 560px;
+}
+
+.empty-state-lead {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.empty-state-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.empty-state-list li {
+  line-height: 1.4;
+}
+
+/* ========================================
    Card / panel
    ======================================== */
 .card,

@@ -1,0 +1,9 @@
+# SPA fallback. The dashboard routes client-side with the History API
+# (see js/core/router.js), so deep links and reloads on /log-analyzer,
+# /indexation, /content have no matching static file. Rewrite any such path
+# to index.html with a 200 so the router can resolve it in the browser.
+#
+# This only fires for paths with no matching asset or Function: real files
+# (/styles.css, /js/*, /components.html) and the /api/* Functions are served
+# directly and never hit this rule.
+/*  /index.html  200

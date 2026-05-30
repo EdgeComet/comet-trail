@@ -37,20 +37,14 @@
     <div class="app-body">
       <aside class="sidebar">
         <nav class="sidebar-nav">
-          <a class="nav-item active" href="#">Log Analyzer</a>
-          <a class="nav-item" href="#">Indexation</a>
-          <a class="nav-item" href="#">Content</a>
+          <a class="nav-item" href="/log-analyzer" data-route>Log Analyzer</a>
+          <a class="nav-item" href="/indexation" data-route>Indexation</a>
+          <a class="nav-item" href="/content" data-route>Content</a>
         </nav>
       </aside>
 
-      <main class="main-content">
-        <div class="range-bar" role="group" aria-label="Date range">
-          <button class="range-btn" data-range="7" type="button" aria-pressed="false">7 days</button>
-          <button class="range-btn active" data-range="30" type="button" aria-pressed="true">30 days</button>
-          <button class="range-btn" data-range="90" type="button" aria-pressed="false">90 days</button>
-        </div>
-        <div id="metrics"><!-- StatCardGroupChart renders here --></div>
-      </main>
+      <!-- Router outlet: js/main.js paints the active page view in here. -->
+      <main class="main-content" id="view-outlet"></main>
     </div>
   </div>
 
