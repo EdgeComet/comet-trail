@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CometTrail</title>
+  <link rel="stylesheet" href="/vendor/billboard/billboard.min.css">
   <link rel="stylesheet" href="/styles.css">
   <style>
     /* Page-specific: center the single summary card. */
@@ -49,6 +50,10 @@
       </div>
     </main>
   </div>
+
+  <!-- billboard.js charting library (d3 bundled). Loaded and available as the
+       global `bb` for charts wired into the dashboard later. -->
+  <script src="/vendor/billboard/billboard.pkgd.min.js"></script>
 
   <script type="module">
     const el = document.getElementById('total');
