@@ -1,5 +1,11 @@
 // Small DOM helpers shared by every Chart's loading/error states.
 
+// Read a CSS custom property's computed value off :root, so charts (billboard,
+// etc.) can pass the same palette tokens the stylesheet uses and track the theme.
+export function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 // A spinning indicator. Consumes the @keyframes spin already in styles.css.
 export function spinnerEl() {
   const el = document.createElement("div");

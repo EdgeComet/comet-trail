@@ -7,7 +7,9 @@
 import { DateRangeStore } from "../core/dateRange.js";
 import { Dashboard } from "../core/registry.js";
 import { MetricsProvider } from "../providers/metricsProvider.js";
+import { BotActivityProvider } from "../providers/botActivityProvider.js";
 import { StatCardGroupChart } from "../charts/statCardGroupChart.js";
+import { BotActivityChart } from "../charts/botActivityChart.js";
 import { pageHeader } from "../core/ui.js";
 
 const PRESETS = [
@@ -17,6 +19,7 @@ const PRESETS = [
 ];
 
 const metricsProvider = new MetricsProvider();
+const botActivityProvider = new BotActivityProvider();
 let selectedDays = 30; // remembered across tab switches
 
 // Build the preset pill row and wire each button to the date-range store.
@@ -62,7 +65,17 @@ export function renderLogAnalyzer(outlet) {
   metrics.id = "metrics";
   outlet.append(metrics);
 
+  const botActivity = document.createElement("div");
+  botActivity.id = "bot-activity";
+  botActivity.style.marginTop = "24px";
+  outlet.append(botActivity);
+
   const dashboard = new Dashboard(dateRange);
   dashboard.add(new StatCardGroupChart(metrics, metricsProvider));
+  dashboard.add(new BotActivityChart(botActivity, botActivityProvider));
   dashboard.start(); // initial paint for the current range
+
+  // Router teardown: detach the range subscription and destroy charts (the
+  // billboard instance holds a window-resize listener) before the next view.
+  return () => dashboard.destroy();
 }

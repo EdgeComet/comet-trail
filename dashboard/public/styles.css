@@ -73,6 +73,15 @@
   --type-xhr: #06B6D4;
   --type-other: #6B7280;
 
+  /* Bot-activity series colors — one per chart series (see botActivityChart.js).
+     --bot-other is overridden in dark mode for contrast (slate is too dim there). */
+  --bot-googlebot: #FF8C42;
+  --bot-bingbot: #0EA5E9;
+  --bot-gptbot: #22C55E;
+  --bot-claudebot: #8B5CF6;
+  --bot-perplexity: #EC4899;
+  --bot-other: #94A3B8;
+
   /* Table header sort */
   --table-header-sort-bg: #E0F2FE;
   --table-header-sort-text: #0EA5E9;
@@ -123,6 +132,9 @@
   /* Table header sort */
   --table-header-sort-bg: #1a3a4a;
   --table-header-sort-text: #38bdf8;
+
+  /* Bot-activity: lift the slate "Other" line off the dark background. */
+  --bot-other: #CBD5E1;
 
   /* Chrome (header + sidebar) — dark theme: dark surfaces, light text */
   --header-bg: var(--dark-primary);
@@ -913,4 +925,105 @@ a:hover {
 /* Focus de-emphasis: dim non-hovered arcs/lines a touch */
 .bb-arc.bb-arc-, .bb path.bb-line {
   shape-rendering: geometricPrecision;
+}
+
+/* ========================================
+   Bot Activity chart (charts/botActivityChart.js)
+   ----------------------------------------
+   A custom top legend (replaces billboard's built-in so we control styling and
+   click-to-toggle) and a per-series summary footer below the spline chart.
+   ======================================== */
+
+/* Clickable legend: a colored dot + label per series. The dot color is set
+   inline from the --bot-* token so it always matches the line. */
+.bot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding: 4px 0 16px;
+}
+
+.bot-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  transition: opacity var(--transition-fast);
+}
+
+.bot-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Toggled-off series: dim the whole item and gray the dot. */
+.bot-legend-item.is-off {
+  opacity: 0.4;
+}
+.bot-legend-item.is-off .bot-legend-dot {
+  background: var(--text-dim) !important;
+}
+
+/* Summary footer: one tile per series with its total and share of all bots.
+   A left color bar ties each tile back to its line (set inline). */
+.bot-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.bot-summary-card {
+  border-left: 3px solid var(--border-medium);
+  padding: 2px 0 2px 12px;
+}
+
+.bot-summary-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.bot-summary-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bot-summary-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.bot-summary-share {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Neutral "no data" message inside the chart card (distinct from .chart-error). */
+.bot-empty {
+  margin: 0;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
 }

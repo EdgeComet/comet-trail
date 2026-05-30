@@ -5,7 +5,8 @@ export class Dashboard {
   constructor(dateRange) {
     this.dateRange = dateRange;
     this.charts = [];
-    dateRange.subscribe(({ from, to }) => this._renderAll(from, to));
+    // Keep the unsubscribe so destroy() can detach on view unmount.
+    this._unsubscribe = dateRange.subscribe(({ from, to }) => this._renderAll(from, to));
   }
 
   add(chart) {
@@ -21,5 +22,13 @@ export class Dashboard {
   start() {
     const { from, to } = this.dateRange.get();
     this._renderAll(from, to);
+  }
+
+  // Detach from the range store and tear down every chart. The view's router
+  // teardown calls this on navigation so chart libraries (billboard) don't leak
+  // listeners after their DOM is wiped.
+  destroy() {
+    if (this._unsubscribe) this._unsubscribe();
+    for (const chart of this.charts) chart.destroy();
   }
 }

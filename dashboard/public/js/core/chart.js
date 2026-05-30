@@ -40,4 +40,13 @@ export class Chart {
   render(_data) {
     throw new Error("Chart.render() not implemented");
   }
+
+  // Optional teardown when the view unmounts (Dashboard.destroy calls it).
+  // Bumping _seq invalidates any load still in flight, so its awaited render()
+  // is skipped instead of painting into the now-detached DOM after teardown.
+  // Subclasses that own a chart-library instance (e.g. billboard) override to
+  // also release it — and must call super.destroy() to keep the seq guard.
+  destroy() {
+    this._seq++;
+  }
 }

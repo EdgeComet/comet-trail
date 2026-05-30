@@ -21,6 +21,13 @@ export class Provider {
     return `${this.name}|${from}|${to}`;
   }
 
+  // Extra query params beyond from/to. Base sends none; subclasses override to
+  // add their own (e.g. a bucket granularity). Anything derived purely from
+  // (from, to) needs no change to _key, since the key already varies with them.
+  _params(_from, _to) {
+    return {};
+  }
+
   // Returns the parsed JSON for this range. Cache hit (unexpired) => no network.
   async get(from, to) {
     const now = Date.now();
@@ -29,7 +36,8 @@ export class Provider {
     const hit = this._cache.get(key);
     if (hit && hit.expiresAt > now) return hit.data;
 
-    const url = `${this.endpoint}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const query = new URLSearchParams({ from, to, ...this._params(from, to) });
+    const url = `${this.endpoint}?${query}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
