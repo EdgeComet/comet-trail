@@ -817,6 +817,21 @@ a:hover {
   color: var(--text-muted);
 }
 
+/* Half-width row for a card meant to sit beside a future sibling. One child
+   lands in the first ~50% track on desktop and goes full width on narrow
+   screens — intrinsic, no media query (matching .stat-grid's approach).
+   auto-fill (not auto-fit) keeps the empty second track from collapsing, so a
+   lone card stays half-width instead of stretching. */
+.chart-pair {
+  display: grid;
+  /* 440px min (not 480) so two tracks plus the 24px gap fit the ~960px content
+     area — otherwise auto-fill collapses to one full-width column. Drops to one
+     column (full width) once the container falls below ~900px. */
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
 /* ========================================
    Data table
    ======================================== */

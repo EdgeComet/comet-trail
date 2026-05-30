@@ -46,13 +46,16 @@ export default {
     const ua = request.headers.get('user-agent') || '';
     const botName = detectBot(ua);
 
-    // Not a tracked bot → straight passthrough, zero overhead.
-    if (!botName) return fetch(request);
+    // Not a tracked bot → straight passthrough, zero overhead. redirect: 'manual'
+    // so a site redirect reaches the caller instead of being followed here.
+    if (!botName) return fetch(request, { redirect: 'manual' });
 
     const start = Date.now();
     let response;
     try {
-      response = await fetch(request);
+      // redirect: 'manual' — never follow redirects. A 3xx must be passed through
+      // to the bot (so it sees the redirect), not silently resolved by the Worker.
+      response = await fetch(request, { redirect: 'manual' });
     } catch (err) {
       // Origin unreachable. Record a row so the failure is visible in the
       // dataset, then propagate so Cloudflare serves its default error page.
@@ -70,6 +73,22 @@ export default {
       throw err;
     }
     const responseTimeMs = Date.now() - start;
+
+    // A 3xx carries no page to analyze. Record the hop and return the response
+    // unchanged so the bot follows the site's redirect itself — the Worker must
+    // not swallow it (that would break the site's redirects for crawlers).
+    if (response.status >= 300 && response.status < 400) {
+      ctx.waitUntil(
+        insertRow(env, {
+          url: request.url, status: response.status, responseTimeMs, botName,
+          title: null, metaDescription: null, canonical: null,
+          hreflangs: [], h1: [], h2: [],
+          metaRobots: [], metaGooglebot: [], structuredDataTypes: [],
+          indexStatus: 'non_200',
+        }).catch((e) => console.error('evergreen-crawl redirect-row insert failed:', e))
+      );
+      return response;
+    }
 
     const ct = response.headers.get('content-type') || '';
     if (!ct.toLowerCase().includes('text/html') || !response.body) {
@@ -89,8 +108,9 @@ export default {
       extractAndStore({
         env,
         url: request.url,
-        // Post-redirect final URL (fetch auto-follows); used for the canonical
-        // comparison. Falls back to request.url when response.url is empty.
+        // URL the response came from, used for the canonical comparison. We never
+        // follow redirects (redirect: 'manual'), so for any HTML page recorded
+        // here it equals request.url; the fallback covers an empty response.url.
         finalUrl: response.url || request.url,
         status: response.status,
         responseTimeMs,

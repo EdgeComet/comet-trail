@@ -65,6 +65,12 @@ function buildPages() {
   for (const p of ['about', 'pricing', 'contact', 'docs', 'blog', 'tests'])
     push(`/${p}`, { kind: 'section', title: `${cap(p)} - OpenSeoTest`, sd: ['WebPage'] });
 
+  // Moved/short-link URLs that redirect (3xx). Placed early so they survive the
+  // row-target cutoff in generate() and keep a visible 3xx slice (no visit boost
+  // needed here — early pages already get full two-pass coverage).
+  for (const p of ['/old-landing-page', '/promo/expired'])
+    push(p, { kind: 'redirect', title: null, sd: [] });
+
   for (const s of SLUGS)
     push(`/blog/${s}`, { kind: 'article', title: `${titleize(s)} | OpenSeoTest Blog`,
       sd: ['Article', 'BreadcrumbList'], intl: chance(0.25) });
@@ -87,7 +93,7 @@ function buildPages() {
     push(p, { kind: 'noindex', title: `${cap(p.replace(/[/?].*/, '').slice(1) || 'search')} - OpenSeoTest`, sd: [] });
 
   // Pages that tend to be broken / flaky (drives non_200 + NULL-status rows).
-  for (const p of ['/blog/deleted-post', '/old-landing-page', '/tests/removed-test', '/promo/expired'])
+  for (const p of ['/blog/deleted-post', '/tests/removed-test', '/products/discontinued', '/promo/2023-sale'])
     push(p, { kind: 'broken', title: '', sd: [] });
 
   return pages;
@@ -125,11 +131,22 @@ function makeRow(page, bot, ts, epoch) {
     case 'tag':
       if (page.page > 1) canonical = `${HOST}/tag/${page.tag}`; // paginated → canonical to page 1
       break;
+    case 'redirect': {
+      // Moved permanently (301) most of the time, temporarily (302) sometimes.
+      // Rolled per visit, so one URL yields both codes across the window.
+      status = chance(0.7) ? 301 : 302;
+      title = null; h1 = []; desc = null; canonical = null; sd = [];
+      break;
+    }
     case 'broken': {
-      // Mostly 404, sometimes 500, occasionally origin unreachable (NULL status).
+      // Mostly 404, plus rate-limit (429), server errors (500/503), and the
+      // occasional unreachable origin (NULL). 404/500 stay dominant so each code
+      // keeps a visible slice. Rolled per visit, so one URL spans several codes.
       const r = random();
-      status = r < 0.6 ? 404 : r < 0.85 ? 500 : null;
-      title = status === 404 ? '404 Not Found' : status === 500 ? '500 Server Error' : null;
+      status = r < 0.5 ? 404 : r < 0.65 ? 429 : r < 0.85 ? 500 : r < 0.93 ? 503 : null;
+      const titles = { 404: '404 Not Found', 429: '429 Too Many Requests',
+        500: '500 Server Error', 503: '503 Service Unavailable' };
+      title = titles[status] ?? null;
       h1 = title ? [title] : [];
       desc = null; canonical = null; sd = [];
       break;
@@ -193,7 +210,12 @@ function generate(target) {
   while (rows.length < target) {
     for (const page of pages) {
       if (rows.length >= target) break;
-      const visits = between(4, 28); // visits for this URL across the window
+      // Broken pages sit last in buildPages, so they only get first-pass coverage
+      // before the row-target cutoff; boost them so 4xx/5xx land near real-world
+      // proportions instead of rounding to 0%. (Redirect pages are placed early
+      // and already get full coverage, so they need no boost.)
+      const base = between(4, 28); // visits for this URL across the window
+      const visits = page.kind === 'broken' ? base * 4 : base;
       const times = Array.from({ length: visits }, () => now - rand(WINDOW)).sort((a, b) => a - b);
       const evolving = page.evolveTitle || page.evolveNoindex;
       for (let vi = 0; vi < times.length; vi++) {
@@ -243,5 +265,7 @@ const rows = generate(TARGET);
 const fs = await import('node:fs');
 fs.writeFileSync(OUT, toSql(rows) + '\n');
 const byStatus = rows.reduce((m, r) => ((m[r.index_status] = (m[r.index_status] || 0) + 1), m), {});
+const byHttp = rows.reduce((m, r) => ((m[r.status ?? 'null'] = (m[r.status ?? 'null'] || 0) + 1), m), {});
 console.log(`Wrote ${rows.length} rows to ${OUT}`);
 console.log('index_status:', byStatus);
+console.log('status:', byHttp);

@@ -8,8 +8,10 @@ import { DateRangeStore } from "../core/dateRange.js";
 import { Dashboard } from "../core/registry.js";
 import { MetricsProvider } from "../providers/metricsProvider.js";
 import { BotActivityProvider } from "../providers/botActivityProvider.js";
+import { StatusDistributionProvider } from "../providers/statusDistributionProvider.js";
 import { StatCardGroupChart } from "../charts/statCardGroupChart.js";
 import { BotActivityChart } from "../charts/botActivityChart.js";
+import { StatusDistributionChart } from "../charts/statusDistributionChart.js";
 import { pageHeader } from "../core/ui.js";
 
 const PRESETS = [
@@ -20,6 +22,7 @@ const PRESETS = [
 
 const metricsProvider = new MetricsProvider();
 const botActivityProvider = new BotActivityProvider();
+const statusDistProvider = new StatusDistributionProvider();
 let selectedDays = 30; // remembered across tab switches
 
 // Build the preset pill row and wire each button to the date-range store.
@@ -70,9 +73,18 @@ export function renderLogAnalyzer(outlet) {
   botActivity.style.marginTop = "24px";
   outlet.append(botActivity);
 
+  // Half-width row: the status chart sits in the first ~50% track, the second
+  // track is reserved for a future paired widget (see .chart-pair in styles.css).
+  const distRow = document.createElement("div");
+  distRow.className = "chart-pair";
+  const statusDist = document.createElement("div");
+  distRow.appendChild(statusDist);
+  outlet.append(distRow);
+
   const dashboard = new Dashboard(dateRange);
   dashboard.add(new StatCardGroupChart(metrics, metricsProvider));
   dashboard.add(new BotActivityChart(botActivity, botActivityProvider));
+  dashboard.add(new StatusDistributionChart(statusDist, statusDistProvider));
   dashboard.start(); // initial paint for the current range
 
   // Router teardown: detach the range subscription and destroy charts (the
