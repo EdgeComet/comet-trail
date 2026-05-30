@@ -116,13 +116,13 @@ You should see one row per `curl`. Loading the same page from a normal browser s
 
 ## Dashboard
 
-`dashboard/` is a minimal Cloudflare Pages app that binds the **same** D1 database and serves a single live number — total requests captured — via a Pages Function at `/api/summary`. It's a base to build on, not the full analytics UI.
+`dashboard/` is a minimal Cloudflare Pages app that binds the **same** D1 database. It's built on a small **Provider/Chart** framework (`public/js/`): each visual component is fed by a dedicated data provider (a frontend object that caches its results, paired with a Pages Function endpoint). The first component is a row of summary stat cards — total requests, unique URLs, crawl efficiency, average response — served by `/api/metrics?from=&to=` and driven by a global date-range selector (7 / 30 / 90 days). It's a base to build on, not the full analytics UI.
 
 ```bash
 npm run deploy:dashboard      # wrangler pages deploy
 ```
 
-Local preview against your D1: `cd dashboard && npx wrangler pages dev`. Charts and filters are intentionally out of scope here.
+Local preview against your D1: `cd dashboard && npx wrangler pages dev`.
 
 ### Locking the dashboard behind Cloudflare Access
 
@@ -180,8 +180,9 @@ Each is a small addition — the code is intentionally short so it's easy to rea
 │   ├── wrangler.toml          your local config (gitignored): route, D1 binding
 │   └── package.json           scripts: dev, deploy, db:init, db:recent, tail
 └── dashboard/                 base Cloudflare Pages app (reads the same D1)
-    ├── public/index.html      single page: shows total requests
-    ├── functions/api/summary.js   D1 COUNT(*) → JSON
+    ├── public/index.html      dashboard page (loads the Provider/Chart framework)
+    ├── public/js/             Provider/Chart framework: core/, providers/, charts/, main.js
+    ├── functions/api/metrics.js   D1 aggregate (totals, efficiency, avg) → JSON
     ├── functions/_middleware.js   optional Cloudflare Access lock (off until configured)
     ├── wrangler.toml.default  Pages config template (same database_id)
     ├── wrangler.toml          gitignored

@@ -76,6 +76,16 @@
   /* Table header sort */
   --table-header-sort-bg: #E0F2FE;
   --table-header-sort-text: #0EA5E9;
+
+  /* Chrome (header + sidebar) — light theme: light surfaces, dark text */
+  --header-bg: var(--bg-white);
+  --header-border: var(--border-light);
+  --header-text: var(--text-dark);
+  --sidebar-bg: var(--bg-white);
+  --sidebar-border: var(--border-light);
+  --nav-text: var(--text-muted);
+  --nav-hover-bg: var(--bg-tertiary);
+  --nav-hover-text: var(--text-dark);
 }
 
 /* ========================================
@@ -113,6 +123,16 @@
   /* Table header sort */
   --table-header-sort-bg: #1a3a4a;
   --table-header-sort-text: #38bdf8;
+
+  /* Chrome (header + sidebar) — dark theme: dark surfaces, light text */
+  --header-bg: var(--dark-primary);
+  --header-border: var(--dark-tertiary);
+  --header-text: var(--text-light);
+  --sidebar-bg: var(--dark-secondary);
+  --sidebar-border: var(--dark-tertiary);
+  --nav-text: var(--text-dim);
+  --nav-hover-bg: var(--dark-tertiary);
+  --nav-hover-text: var(--text-light);
 }
 
 /* ========================================
@@ -192,18 +212,16 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--dark-primary);
+  background: var(--header-bg);
   padding: 16px 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid var(--dark-tertiary);
+  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--header-border);
 }
 
 .header-content {
   display: flex;
   align-items: center;
   gap: 24px;
-  max-width: 1280px;
-  margin: 0 auto;
 }
 
 .header-brand {
@@ -212,7 +230,7 @@ a:hover {
   gap: 10px;
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-light);
+  color: var(--header-text);
   letter-spacing: -0.02em;
 }
 
@@ -223,11 +241,90 @@ a:hover {
   margin-left: auto;
 }
 
+/* Row beneath the header: fixed-width sidebar + flexible content. */
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
 .main-content {
   flex: 1;
+  min-width: 0;
   padding: 32px 40px;
   background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
+
+/* ========================================
+   Sidebar (left navigation)
+   ======================================== */
+.sidebar {
+  flex-shrink: 0;
+  width: 240px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  padding: 16px 12px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nav-text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.nav-item:hover {
+  background: var(--nav-hover-bg);
+  color: var(--nav-hover-text);
+  text-decoration: none;
+}
+
+.nav-item.active {
+  background: rgba(255, 107, 74, 0.18);
+  color: var(--accent-coral);
+}
+
+/* ========================================
+   Theme toggle (header right)
+   ======================================== */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--nav-text);
+  background: transparent;
+  border: 1px solid var(--header-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  color: var(--nav-hover-text);
+  background: var(--nav-hover-bg);
+}
+
+/* Show the sun in dark mode, the moon in light mode. */
+.theme-icon-moon { display: none; }
+[data-theme="dark"] .theme-icon-sun { display: block; }
+[data-theme="dark"] .theme-icon-moon { display: none; }
+:root:not([data-theme="dark"]) .theme-icon-sun { display: none; }
+:root:not([data-theme="dark"]) .theme-icon-moon { display: block; }
 
 .content-wrap {
   max-width: 1280px;
@@ -525,6 +622,61 @@ a:hover {
   margin-top: 10px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* ========================================
+   Provider/Chart framework — shared states
+   ----------------------------------------
+   Loading spinner and inline error shown by any Chart while its provider
+   loads or after a failure (core/ui.js), plus the global date-range selector.
+   ======================================== */
+
+/* Spinner — consumes the @keyframes spin defined in Base. */
+.spinner {
+  width: 24px;
+  height: 24px;
+  margin: 24px auto;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--electric-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Inline load error (same look as the retired .summary-error). */
+.chart-error {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--error);
+}
+
+/* Global date-range selector: a row of preset pill buttons. */
+.range-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.range-btn {
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.range-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.range-btn.active {
+  background: var(--accent-coral);
+  border-color: var(--accent-coral);
+  color: #fff;
 }
 
 /* ========================================

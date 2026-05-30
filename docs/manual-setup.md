@@ -83,4 +83,4 @@ npm run deploy:dashboard
 
 > Deploy **after** completing steps 1–5. The middleware fails closed: deploying it before the Access app exists and the `[vars]` are filled will return 403 to everyone, including you.
 
-**Verify:** `curl -i https://comet-trail-dashboard.pages.dev/api/summary` should return **403** (raw Pages URL has no token), while opening `https://dashboard.example.com/` redirects you to the Access login and, after entering the emailed code, loads the page.
+**Verify:** `curl -i https://comet-trail-dashboard.pages.dev/api/metrics` should return **403** (raw Pages URL has no token), while opening `https://dashboard.example.com/` redirects you to the Access login and, after entering the emailed code, loads the page.

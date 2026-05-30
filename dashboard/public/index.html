@@ -7,65 +7,58 @@
   <title>CometTrail</title>
   <link rel="stylesheet" href="/vendor/billboard/billboard.min.css">
   <link rel="stylesheet" href="/styles.css">
-  <style>
-    /* Page-specific: center the single summary card. */
-    .summary-card { max-width: 420px; margin: 8vh auto 0; text-align: center; }
-    .summary-card .card-body { padding: 40px 24px; }
-    .summary-label {
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-    .summary-number {
-      margin-top: 0.5rem;
-      font-size: clamp(3rem, 12vw, 6rem);
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      line-height: 1.05;
-      color: var(--text-dark);
-    }
-    .summary-error {
-      margin-top: 1rem;
-      font-size: 0.95rem;
-      color: var(--error);
-    }
-  </style>
 </head>
 <body>
   <div class="app">
     <header class="app-header">
       <div class="header-content">
         <div class="header-brand">CometTrail</div>
+        <div class="header-actions">
+          <button class="theme-toggle" id="theme-toggle" type="button"
+                  aria-label="Toggle light and dark theme">
+            <!-- sun (shown in dark mode → click for light) -->
+            <svg class="theme-icon theme-icon-sun" width="18" height="18" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+            <!-- moon (shown in light mode → click for dark) -->
+            <svg class="theme-icon theme-icon-moon" width="18" height="18" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 
-    <main class="main-content">
-      <div class="card summary-card">
-        <div class="card-body">
-          <div class="summary-label">Total requests captured</div>
-          <div class="summary-number" id="total">…</div>
+    <div class="app-body">
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <a class="nav-item active" href="#">Log Analyzer</a>
+          <a class="nav-item" href="#">Indexation</a>
+          <a class="nav-item" href="#">Content</a>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <div class="range-bar" role="group" aria-label="Date range">
+          <button class="range-btn" data-range="7" type="button" aria-pressed="false">7 days</button>
+          <button class="range-btn active" data-range="30" type="button" aria-pressed="true">30 days</button>
+          <button class="range-btn" data-range="90" type="button" aria-pressed="false">90 days</button>
         </div>
-      </div>
-    </main>
+        <div id="metrics"><!-- StatCardGroupChart renders here --></div>
+      </main>
+    </div>
   </div>
 
   <!-- billboard.js charting library (d3 bundled). Loaded and available as the
        global `bb` for charts wired into the dashboard later. -->
   <script src="/vendor/billboard/billboard.pkgd.min.js"></script>
 
-  <script type="module">
-    const el = document.getElementById('total');
-    try {
-      const res = await fetch('/api/summary');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { total } = await res.json();
-      el.textContent = total.toLocaleString();
-    } catch (err) {
-      el.classList.add('summary-error');
-      el.textContent = `Failed to load: ${err.message}`;
-    }
-  </script>
+  <!-- Provider/Chart framework entry point. -->
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>
