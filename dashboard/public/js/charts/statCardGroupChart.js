@@ -23,7 +23,7 @@ export class StatCardGroupChart extends Chart {
   }
 }
 
-function statCard({ label, value, foot }) {
+export function statCard({ label, value, foot }) {
   const card = document.createElement("div");
   card.className = "stat-card";
 
