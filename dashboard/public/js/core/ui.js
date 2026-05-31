@@ -45,6 +45,45 @@ export function pageHeader(title, subtitle) {
   return header;
 }
 
+// Titled card shell: card > (card-header-lg > card-title-lg) + (card-body-lg >
+// body). Shared by the bar-list charts so they render an identical container.
+export function titledCard(title, body) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const header = document.createElement("div");
+  header.className = "card-header card-header-lg";
+  const h3 = document.createElement("h3");
+  h3.className = "card-title-lg";
+  h3.textContent = title;
+  header.appendChild(h3);
+
+  const bodyWrap = document.createElement("div");
+  bodyWrap.className = "card-body card-body-lg";
+  bodyWrap.appendChild(body);
+
+  card.append(header, bodyWrap);
+  return card;
+}
+
+// A neutral "no data" line (not the red error state) for a quiet range.
+export function emptyMessage(text) {
+  const msg = document.createElement("p");
+  msg.className = "bot-empty";
+  msg.textContent = text;
+  return msg;
+}
+
+// Compact request count: 999 -> "999", 1200 -> "1.2K", 45700 -> "45.7K".
+export function fmtCompact(n) {
+  return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
+}
+
+// Percentage label. A small-but-nonzero slice reads "<1%", never rounding to 0%.
+export function fmtPct(p) {
+  return p > 0 && p < 1 ? "<1%" : `${Math.round(p)}%`;
+}
+
 // A "nothing here yet" card for pages whose widgets are not built. `items` is
 // an optional list of the planned contents, rendered as a checklist so the
 // placeholder doubles as a spec for what the page will hold.

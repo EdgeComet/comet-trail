@@ -44,6 +44,7 @@
   --warning: #F59E0B;
   --warning-light: #FEF3C7;
   --warning-lighter: #F5F4EF;
+  --warning-strong: #F97316;  /* orange, between amber --warning and red --error */
   --error: #EF4444;
   --error-light: #FEE2E2;
 
@@ -792,6 +793,7 @@ a:hover {
 .bar-fill-success { background: var(--success); }
 .bar-fill-info    { background: var(--electric-blue); }
 .bar-fill-warning { background: var(--warning); }
+.bar-fill-warning-strong { background: var(--warning-strong); }
 .bar-fill-error   { background: var(--error); }
 
 .bar-value {
@@ -815,6 +817,18 @@ a:hover {
   font-size: 12px;
   line-height: 1.2;
   color: var(--text-muted);
+}
+
+/* Summary line below a bar list (e.g. the response-time average), centered and
+   separated by a full-width divider. --border-light is theme-aware. */
+.bar-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Half-width row for a card meant to sit beside a future sibling. One child

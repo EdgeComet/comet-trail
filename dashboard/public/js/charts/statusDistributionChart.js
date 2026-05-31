@@ -1,4 +1,5 @@
 import { Chart } from "../core/chart.js";
+import { titledCard, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
 
 // Response Status Distribution — a stack of labeled horizontal bars splitting
 // crawl responses into 2xx / 3xx / 4xx / 5xx, plus a gray "No response" row for
@@ -18,18 +19,14 @@ const GROUPS = [
 // Trailing group for unreachable-origin rows; default gray .bar-fill (no mod).
 const NO_RESPONSE = { key: "No response", mod: "" };
 
-const fmtCompact = (n) =>
-  n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
-
-// A small-but-nonzero slice should read "<1%", never round down to "0%".
-const fmtPct = (p) => (p > 0 && p < 1 ? "<1%" : `${Math.round(p)}%`);
+const TITLE = "Response Status Distribution";
 
 export class StatusDistributionChart extends Chart {
   render({ rows }) {
     // No data is not an error (a quiet range is normal) — neutral message, not
     // the red failure state. Mirrors botActivityChart's empty handling.
     if (!rows.length) {
-      this.el.replaceChildren(this._card(emptyMessage()));
+      this.el.replaceChildren(titledCard(TITLE, emptyMessage("No requests in this range.")));
       return;
     }
 
@@ -69,28 +66,7 @@ export class StatusDistributionChart extends Chart {
       );
     }
 
-    this.el.replaceChildren(this._card(list));
-  }
-
-  // Titled card shell wrapping the supplied body element, matching the structure
-  // botActivityChart uses (card > card-header-lg > card-title-lg, card-body-lg).
-  _card(body) {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const header = document.createElement("div");
-    header.className = "card-header card-header-lg";
-    const title = document.createElement("h3");
-    title.className = "card-title-lg";
-    title.textContent = "Response Status Distribution";
-    header.appendChild(title);
-
-    const bodyWrap = document.createElement("div");
-    bodyWrap.className = "card-body card-body-lg";
-    bodyWrap.appendChild(body);
-
-    card.append(header, bodyWrap);
-    return card;
+    this.el.replaceChildren(titledCard(TITLE, list));
   }
 }
 
@@ -136,11 +112,4 @@ function barRow(group, total, grandTotal, metaLabels) {
   }
 
   return row;
-}
-
-function emptyMessage() {
-  const msg = document.createElement("p");
-  msg.className = "bot-empty";
-  msg.textContent = "No requests in this range.";
-  return msg;
 }
