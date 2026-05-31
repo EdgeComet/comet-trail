@@ -10,6 +10,8 @@ import { DateRangeStore } from "../core/dateRange.js";
 import { Dashboard } from "../core/registry.js";
 import { IndexationSummaryProvider } from "../providers/indexationSummaryProvider.js";
 import { IndexationSummaryChart } from "../charts/indexationSummaryChart.js";
+import { IndexStatusTrendProvider } from "../providers/indexStatusTrendProvider.js";
+import { IndexStatusTrendChart } from "../charts/indexStatusTrendChart.js";
 import { pageHeader } from "../core/ui.js";
 
 const PRESETS = [
@@ -19,6 +21,7 @@ const PRESETS = [
 ];
 
 const summaryProvider = new IndexationSummaryProvider();
+const trendProvider = new IndexStatusTrendProvider();
 let selectedDays = 30; // remembered across tab switches
 
 // Build the preset pill row and wire each button to the date-range store.
@@ -67,8 +70,14 @@ export function renderIndexation(outlet) {
   summary.id = "indexation-summary";
   outlet.append(summary);
 
+  const trend = document.createElement("div");
+  trend.id = "indexation-trend";
+  trend.className = "chart-section"; // 24px gap from the summary cards above
+  outlet.append(trend);
+
   const dashboard = new Dashboard(dateRange);
   dashboard.add(new IndexationSummaryChart(summary, summaryProvider));
+  dashboard.add(new IndexStatusTrendChart(trend, trendProvider));
   dashboard.start(); // initial paint for the current range
 
   // Router teardown: detach the range subscription before the next view.

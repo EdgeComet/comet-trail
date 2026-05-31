@@ -846,6 +846,12 @@ a:hover {
   margin-top: 24px;
 }
 
+/* A full-width chart card stacked below a preceding section (stat cards, another
+   chart). Gives the same 24px vertical rhythm as .chart-pair without the grid. */
+.chart-section {
+  margin-top: 24px;
+}
+
 /* ========================================
    Data table
    ======================================== */
@@ -888,7 +894,7 @@ a:hover {
    billboard.min.css handles layout; these overrides repaint text, axes,
    grid, and tooltip with the dashboard tokens so charts track both the
    light and dark themes. Series colors are passed per-chart via
-   `color.pattern` (using --type-*/--success/... values), not set here.
+   `color.pattern` (using --type---success/... values), not set here.
    ======================================== */
 .bb svg {
   font-family: var(--font-sans);
