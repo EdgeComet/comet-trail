@@ -795,6 +795,7 @@ a:hover {
 .bar-fill-warning { background: var(--warning); }
 .bar-fill-warning-strong { background: var(--warning-strong); }
 .bar-fill-error   { background: var(--error); }
+.bar-fill-purple  { background: var(--type-stylesheet); }
 
 .bar-value {
   flex-shrink: 0;

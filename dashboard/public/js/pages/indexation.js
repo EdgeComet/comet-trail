@@ -12,6 +12,10 @@ import { IndexationSummaryProvider } from "../providers/indexationSummaryProvide
 import { IndexationSummaryChart } from "../charts/indexationSummaryChart.js";
 import { IndexStatusTrendProvider } from "../providers/indexStatusTrendProvider.js";
 import { IndexStatusTrendChart } from "../charts/indexStatusTrendChart.js";
+import { IndexStatusDistributionProvider } from "../providers/indexStatusDistributionProvider.js";
+import { IndexStatusDistributionChart } from "../charts/indexStatusDistributionChart.js";
+import { CanonicalAnalysisProvider } from "../providers/canonicalAnalysisProvider.js";
+import { CanonicalAnalysisChart } from "../charts/canonicalAnalysisChart.js";
 import { pageHeader } from "../core/ui.js";
 
 const PRESETS = [
@@ -22,6 +26,8 @@ const PRESETS = [
 
 const summaryProvider = new IndexationSummaryProvider();
 const trendProvider = new IndexStatusTrendProvider();
+const distributionProvider = new IndexStatusDistributionProvider();
+const canonicalProvider = new CanonicalAnalysisProvider();
 let selectedDays = 30; // remembered across tab switches
 
 // Build the preset pill row and wire each button to the date-range store.
@@ -75,9 +81,28 @@ export function renderIndexation(outlet) {
   trend.className = "chart-section"; // 24px gap from the summary cards above
   outlet.append(trend);
 
+  // One chart-pair grid holding two cards: the distribution and the canonical
+  // analysis sit side by side (~50% each) on desktop and stack to full width on
+  // narrow screens. The mount divs are the grid items; each chart renders its
+  // titledCard into its own div, which fills the track. chart-pair also gives the
+  // 24px top gap from the trend chart above.
+  const charts = document.createElement("div");
+  charts.className = "chart-pair";
+
+  const distribution = document.createElement("div");
+  distribution.id = "indexation-distribution";
+
+  const canonical = document.createElement("div");
+  canonical.id = "indexation-canonical";
+
+  charts.append(distribution, canonical);
+  outlet.append(charts);
+
   const dashboard = new Dashboard(dateRange);
   dashboard.add(new IndexationSummaryChart(summary, summaryProvider));
   dashboard.add(new IndexStatusTrendChart(trend, trendProvider));
+  dashboard.add(new IndexStatusDistributionChart(distribution, distributionProvider));
+  dashboard.add(new CanonicalAnalysisChart(canonical, canonicalProvider));
   dashboard.start(); // initial paint for the current range
 
   // Router teardown: detach the range subscription before the next view.
