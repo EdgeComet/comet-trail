@@ -119,8 +119,17 @@ function makeRow(page, bot, ts, epoch) {
   const metaGooglebot = [];
   let canonical = page.url;
   let title = page.title;
-  let desc = `Learn about ${titleize((page.url.split('/').pop() || 'seo').replace(/\?.*/, ''))} with hands-on tests and examples.`;
+  // Content-quality issue flags (drive the Content report's stat cards). Applied
+  // before H1 is derived so a missing/duplicate title flows through to the H1.
+  if (page.missingTitle) title = null;
+  else if (page.dupTitle) title = page.dupTitle;
+  const descTopic = titleize((page.url.split('/').pop() || 'seo').replace(/\?.*/, ''));
+  let desc = `Learn about ${descTopic} with hands-on tests and examples.`;
+  if (page.missingDesc) desc = null;
+  else if (page.longDesc)
+    desc = `A comprehensive, in-depth guide to ${descTopic}: detailed real-world examples, proven best practices, common pitfalls to avoid, and clear step-by-step instructions for developers and SEO teams who want to get every single detail exactly right the first time around.`;
   let h1 = title ? [title.replace(/ [|\-–].*$/, '')] : [];
+  if (page.multiH1) h1 = [...h1, 'Secondary heading'];
   const h2 = [];
   let sd = page.sd.slice();
 
@@ -202,6 +211,19 @@ function generate(target) {
   const articles = pages.filter((p) => p.kind === 'article');
   for (const p of articles.slice(0, 8)) p.evolveTitle = true;
   for (const p of articles.slice(8, 12)) p.evolveNoindex = true;
+
+  // Content-quality issues so the Content report's four stat cards have realistic
+  // non-zero values: a few otherwise-indexable 200 pages missing a title, missing
+  // a meta description, or carrying multiple H1s, plus a duplicate-title cluster.
+  // Confined to always-200 page kinds (article/test/doc), so the status mix and
+  // index_status distribution other widgets rely on stay unchanged.
+  const tests = pages.filter((p) => p.kind === 'test');
+  const docs = pages.filter((p) => p.kind === 'doc');
+  for (const p of articles.slice(12, 16)) p.missingDesc = true;     // no meta description
+  for (const p of articles.slice(19, 24)) p.longDesc = true;        // meta description over 160 chars
+  for (const p of articles.slice(16, 19)) p.multiH1 = true;         // more than one H1
+  for (const p of tests.slice(0, 3)) p.missingTitle = true;         // no <title> (and so no H1)
+  for (const p of docs) p.dupTitle = 'Documentation | OpenSeoTest'; // docs share one title
 
   const now = Date.now();
   const WINDOW = 60 * 24 * 3600 * 1000; // 60 days

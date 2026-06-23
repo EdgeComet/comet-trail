@@ -28,6 +28,7 @@
   --accent-coral: #FF6B4A;
   --accent-coral-dark: #E55A3A;
   --accent-orange: #FF8C42;
+  --lime: #84CC16;            /* yellow-green, sits between amber --warning and green --success */
   --electric-blue: #0EA5E9;
   --electric-blue-dark: #0284C7;
 
@@ -851,6 +852,75 @@ a:hover {
    chart). Gives the same 24px vertical rhythm as .chart-pair without the grid. */
 .chart-section {
   margin-top: 24px;
+}
+
+/* ========================================
+   Segmented analysis bar (field-analysis cards)
+   ----------------------------------------
+   One proportional, multi-color bar over a legend grid. Reused per field —
+   Title, Description, H1, ... — via the shared segmentBar() builder. Segment
+   widths are set inline by flex-grow, so the bar self-normalizes even when the
+   category percentages overlap and sum past 100%.
+   ======================================== */
+.analysis-bar {
+  display: flex;
+  gap: 4px;
+  height: 28px;
+  margin-bottom: 24px;
+}
+
+/* A single colored segment. flex-grow (proportional to the URL count) and the
+   background color are set inline. min-width keeps a tiny slice (e.g. 1%) visible
+   as a rounded nub. */
+.analysis-seg {
+  flex-basis: 0;
+  min-width: 12px;
+  border-radius: 999px;
+  background: var(--text-muted);
+}
+
+/* Legend: one column per category, wrapping to fewer columns on narrow screens.
+   150px min keeps a five-category legend (Description) on a single row at normal
+   widths while still wrapping gracefully when the container gets tight. */
+.analysis-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px 24px;
+}
+
+/* Dot + label line at the top of each legend column. */
+.analysis-legend-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.analysis-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-muted); /* overridden inline to the segment color */
+}
+
+/* The big percentage, colored inline to match its segment. */
+.analysis-legend-pct {
+  margin-top: 10px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-legend-count {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ========================================
