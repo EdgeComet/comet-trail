@@ -35,6 +35,7 @@ The demo data follows a few stories you can look for:
 |---|---|
 | Pages > `/p/ridgeline-gtx-hiking-boot` | A release broke its canonical 18 days ago and was fixed 12 days ago. Bingbot and the AI bots have fetched the fix; Googlebot has not. |
 | Indexation | `/c/sleeping-bags` and its products went `noindex` three days ago, a staging setting that leaked to production. |
+| Content | A release five days ago dropped the product name from the headlamp title template: every headlamp page bots fetched since then shares "Headlamps \| GearShop", and the H1 already tells them apart. Also sold-out products that answer 200 with "Product not found", new tents launched with "Lorem ipsum" descriptions, and a sale banner in the jackets H1. |
 | Changes | The canonical bug and its fix, a title template rollout, guides that lost their H1. |
 | AI Bots | AI assistants fetching pages for people, more each week, and still asking for products the store no longer sells. |
 | Log Analyzer | A three-hour outage 15 days ago and the dip in Googlebot crawling that followed. |
@@ -50,7 +51,7 @@ The demo data follows a few stories you can look for:
 | **Log Analyzer > Overview** | How much did each bot family crawl, which status codes and response times did they get, and what did the newest visits receive? |
 | **Log Analyzer > AI Bots** | Why did each AI come (training, AI search, a live fetch for a person), which sections does each read compared with Googlebot, and which missing pages are assistants still asking for? |
 | **Evergreen Crawl > Indexation** | Which pages can be indexed, judged from the page bots received, and which changed verdict since the previous period? |
-| **Evergreen Crawl > Content** | Missing, duplicate and badly sized titles and descriptions, and H1 problems. |
+| **Evergreen Crawl > Content** | Which titles, meta descriptions and H1s of indexable pages are missing, duplicated or too long, why each duplicate group happens and what would tell its pages apart, which pages got a worse verdict since the previous period, how each title matches its H1, and which pages carry placeholder text or read as "not found"? Every figure opens the pages behind it. |
 | **Evergreen Crawl > Changes** | Every change bots saw, dated by the first visit that showed it, grouped into release-sized events. |
 | **Pages** | Every URL bots fetched. Each opens its time machine: versions, what changed, which version each bot saw last, and the visit log. |
 
@@ -160,7 +161,8 @@ After pulling a new version, re-apply the schema (`npm run db:init`; it is idemp
 D1's free plan allows 100,000 rows written and 5 million rows read per day, and 500 MB per database ([D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/)). For CometTrail that means:
 
 - **Writes.** Each bot visit writes about 3 rows: the visit and one entry in each of its two indexes, so the free plan records roughly 30,000 bot visits a day. Past a daily limit, D1 returns errors until the reset at 00:00 UTC ([D1 FAQ](https://developers.cloudflare.com/d1/reference/faq/)): the worker keeps serving your pages normally but records nothing, and the dashboard cannot load. The limits count every D1 database in the account.
-- **Reads.** Each report reads every visit in the selected period, once per chart, and again for the comparison period. Responses are cached in the browser for five minutes, so a reload costs nothing, but by our estimate one 30-day Log Analyzer view of a site with 10,000 bot visits a day reads about 2 million rows. On a busy site, use the 7-day view or move to the Workers Paid plan (25 billion rows read a month included).
+- **Reads.** Each report reads every visit in the selected period, once per chart, and again for the comparison period. Opening the pages behind a Content figure reads the period again, for each page of the list. Responses are cached in the browser for five minutes, so a reload costs nothing, but by our estimate one 30-day Log Analyzer view of a site with 10,000 bot visits a day reads about 2 million rows. On a busy site, use the 7-day view or move to the Workers Paid plan (25 billion rows read a month included).
+- **CPU.** Workers on the free plan get 10 ms of CPU time per request ([Workers limits](https://developers.cloudflare.com/workers/platform/limits/)). The Content report grades every page in the dashboard's function rather than in D1, at roughly 7 ms per 1,000 URLs bots fetched in the period (our measurement in Node.js, both periods included). Above about 1,000 URLs in the period it can fail with error 1102, "Worker exceeded resource limits": choose a shorter period, or move to the Workers Paid plan (30 seconds of CPU per request).
 - **Storage.** A visit takes about 0.7 KB with its index entries (measured on the demo data), so 500 MB holds roughly 700,000 visits. Rows are never deleted; add a scheduled cleanup if that matters for your site.
 
 ## What is deliberately left out
@@ -189,7 +191,7 @@ D1's free plan allows 100,000 rows written and 5 million rows read per day, and 
 │   │   └── vendor/            billboard.js and the Inter font, so it works offline
 │   ├── functions/api/         one endpoint per report (Pages Functions)
 │   ├── functions/_middleware.js   optional Cloudflare Access lock
-│   └── lib/                   shared API helpers, SQL fragments, page history
+│   └── lib/                   shared API helpers, SQL fragments, page history, content grading
 ├── scripts/
 │   ├── ct-install.mjs         installer verbs behind /install
 │   └── seed-demo.mjs          the demo store's data

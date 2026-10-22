@@ -48,12 +48,21 @@
 //                  canonical broken (D-18) and fixed (D-12). Googlebot's last visit
 //                  is D-14, so it has not seen the fix; ChatGPT-User, GPTBot and
 //                  Bingbot fetched it after the fix.
+//   S8  D-5        A release drops the product name from the headlamp title template:
+//                  every headlamp product now carries the category's title,
+//                  "Headlamps | GearShop". Still active, spreading as bots revisit.
+//   S9  D-4        Three new tents launch with "Lorem ipsum" meta descriptions.
+//   S10 D-8        Three sold-out products answer 200 with "Product not found"
+//                  (a soft 404) instead of a 404 or a redirect.
+//   S11 D-10       An autumn-sale banner replaces the H1 on the jackets listings:
+//                  the title says "Jackets", the H1 talks about a sale.
 //
 // Hero URLs for the demo:
 //   https://gearshop.example/p/ridgeline-gtx-hiking-boot   (S1, S2, S7: time machine)
 //   https://gearshop.example/c/sleeping-bags               (S3: noindex leak)
 //   https://gearshop.example/guides/how-to-choose-a-tent   (S6: AI favourite, H1 removed)
 //   https://gearshop.example/p/cascade-2p-ultralight-tent  (S5: 200 -> 404 -> 301)
+//   https://gearshop.example/c/headlamps                   (S8: title template bug)
 
 import fs from 'node:fs';
 import { botInfo } from '../shared/bots.js';
@@ -79,7 +88,20 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const random = mulberry32(SEED);
+// The generator every helper below draws from. withRandom() swaps in another
+// one for a while: the S8-S10 visits use their own, so adding them left the
+// draws of every other row as they were.
+let source = mulberry32(SEED);
+const random = () => source();
+function withRandom(rng, fn) {
+  const prev = source;
+  source = rng;
+  try {
+    return fn();
+  } finally {
+    source = prev;
+  }
+}
 const rand = (n) => Math.floor(random() * n);
 const pick = (arr) => arr[rand(arr.length)];
 const chance = (p) => random() < p;
@@ -108,6 +130,10 @@ const T = {
   guideCms: ago(6),         // S6
   heroRating: ago(30),      // S7 AggregateRating added
   heroReviewsH2: ago(20),   // S7 H2 renamed
+  headlampTitles: ago(5),   // S8
+  tentLaunch: ago(4),       // S9
+  soldOut: ago(8),          // S10
+  saleBanner: ago(10),      // S11
 };
 // S4: 02:00-05:00 UTC on the calendar day 15 days ago.
 const outageDay = new Date(ago(15));
@@ -198,7 +224,14 @@ const HERO = {
   category: `${HOST}/c/sleeping-bags`,
   guide: `${HOST}/guides/how-to-choose-a-tent`,
   discontinued: `${HOST}/p/cascade-2p-ultralight-tent`,
+  titleBug: `${HOST}/c/headlamps`,
 };
+
+// S9: tents that launch during the dataset. They get scripted visits only, so
+// the random traffic to every other page is the same as without them.
+const NEW_TENTS = ['Trailborn Aero 3P Dome Tent', 'Northpeak Orion Ultralight Tent', 'Cascadia Vista Family Tent'];
+
+const STUFFING = 'Best Price Deals Hiking Camping Backpacking Outdoor Gear Sale';
 
 const hreflangsFor = (path) => [
   { lang: 'en', href: HOST + path },
@@ -273,7 +306,7 @@ function buildSite() {
   }
 
   // Products. The two heroes are fixed; the rest are generated per category.
-  const used = new Set();
+  const used = new Set(NEW_TENTS.map(slugify)); // S9 adds these at the end
   const addProduct = (cat, name, extra = {}) => {
     const slug = extra.slug ?? slugify(name);
     if (used.has(slug)) return null;
@@ -374,7 +407,21 @@ function buildSite() {
   // Content-quality noise.
   for (const p of take(10)) p.desc = null;                                      // missing meta description
   for (const p of take(6)) p.h1 = [p.name, 'Specifications'];                   // two H1s
-  for (const p of take(5)) p.desc += ' Built for long days on the trail, tested by our staff on real trips across three seasons.'; // too long
+  for (const p of take(5)) {                                                     // too long (50+ words)
+    p.desc += ' Built for long days on the trail, tested by our staff on real trips across three seasons.'
+      + ' Questions? Our team answers within a day, and every order ships from our own warehouse with tracking,'
+      + ' free returns and a lifetime repair promise.';
+  }
+
+  // Keyword-stuffed titles, outside the headlamps S8 rewrites. With the S1
+  // template they run to 16+ words.
+  for (const p of take(4, (q) => q.cat !== 'headlamps')) {
+    p.stuffedTitle = true;
+    p.title = `${p.name} ${STUFFING} | GearShop`;
+  }
+  // S10: three products sell out and turn into soft 404s. Not headlamps (S8) or
+  // sleeping bags (S3), whose storylines the "not found" page would override.
+  for (const p of take(3, (q) => q.cat !== 'headlamps' && q.cat !== 'sleeping-bags')) p.soldOut = true;
 
   // S6: eight guides (the hero first) lose their H1 at D-6.
   const guides = pages.filter((p) => p.kind === 'guide');
@@ -394,6 +441,18 @@ function buildSite() {
   shuffle(guides).forEach((g, rank) => { g.w = 1 / Math.pow(rank + 1, 0.7); });
   guides[0].w *= 5;
 
+  // S9: added last and without drawing from the generator, so every page above
+  // comes out the same as without them.
+  const tents = CAT_BY_SLUG.get('tents');
+  for (const name of NEW_TENTS) {
+    add(`/p/${slugify(name)}`, 'product', {
+      cat: tents.slug, name, rating: false, launched: T.tentLaunch,
+      title: `${name} | GearShop`,
+      desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.',
+      h1: [name], h2: ['Description', 'Specifications', 'Reviews', 'You may also like'],
+    });
+  }
+
   return pages;
 }
 
@@ -406,6 +465,15 @@ function stateAt(page, t) {
   if (page.kind === 'dead') return { status: 404 };
   if (page.discontinued && t >= T.dead301) return { status: 301 };
   if (page.discontinued && t >= T.dead404) return { status: 404 };
+  // S10: a sold-out product keeps answering 200 with a "not found" page.
+  if (page.soldOut && t >= T.soldOut) {
+    return {
+      status: 200, title: 'Product not found | GearShop',
+      desc: 'This product is no longer available. Browse our latest outdoor gear instead.',
+      canonical: page.url, robots: [], h1: ['Sorry, this product is no longer available'],
+      h2: ['You may also like'], hreflangs: [], sd: ['BreadcrumbList', 'ListItem'],
+    };
+  }
 
   const s = {
     status: 200,
@@ -421,7 +489,10 @@ function stateAt(page, t) {
 
   if (page.kind === 'product') {
     // S1: title template rewrite.
-    if (t >= T.titleRewrite) s.title = `${page.name} - Free Shipping & Returns | GearShop`;
+    const name = page.stuffedTitle ? `${page.name} ${STUFFING}` : page.name;
+    if (t >= T.titleRewrite) s.title = `${name} - Free Shipping & Returns | GearShop`;
+    // S8: the headlamp template loses the product name.
+    if (page.cat === 'headlamps' && t >= T.headlampTitles) s.title = `${CAT_BY_SLUG.get(page.cat).name} | GearShop`;
     s.sd = productSd(page.rating || (page.hero && t >= T.heroRating));
     // S7: the hero's reviews block got a count in its heading.
     if (page.hero && t >= T.heroReviewsH2) s.h2 = s.h2.map((h) => (h === 'Reviews' ? 'Customer reviews (124)' : h));
@@ -431,6 +502,9 @@ function stateAt(page, t) {
       s.canonical = `${HOST}/c/${page.cat}`;
     }
   }
+
+  // S11: a sale banner takes over the H1 of the jackets listings.
+  if (page.cat === 'jackets' && page.kind !== 'product' && t >= T.saleBanner) s.h1 = ['Autumn Sale: up to 40% off outerwear'];
 
   // S3: noindex leak across the sleeping-bags templates.
   if (page.cat === 'sleeping-bags' && t >= T.noindexLeak) s.robots = ['noindex', 'nofollow'];
@@ -543,7 +617,7 @@ function buildPickers(pages) {
   const buckets = {};
   const put = (name, page, w) => (buckets[name] ??= []).push([page, w]);
   for (const p of pages) {
-    if (p.hero) continue; // the hero product only gets its scripted visits (S7)
+    if (p.hero || p.launched) continue; // the hero product (S7) and new tents (S9) only get scripted visits
     put(p.kind, p, p.w);
     if (p.kind === 'product') put('productHot', p, Math.pow(p.w, 1.8));
     if (p.kind === 'static' && ['shipping', 'returns', 'size-guide', 'warranty'].includes(p.slug)) put('staticHelp', p, 1);
@@ -620,7 +694,8 @@ function daytime(start) {
 
 function generateVisits(pages, pickers) {
   const visits = [];
-  const push = (bot, page, t) => { if (t < NOW) visits.push({ bot, page, t }); };
+  // `rng`: the generator the visit's row draws from, when not the shared one.
+  const push = (bot, page, t, rng) => { if (t < NOW) visits.push({ bot, page, t, rng }); };
 
   for (const stream of STREAMS) {
     for (let k = 0; k < DAYS; k++) {
@@ -687,6 +762,31 @@ function scriptedVisits(pages, push) {
   for (const d of [7.3, 4.1, 1.2, 0.3]) visit(HERO.discontinued, 'ChatGPT-User', d);
   visit(HERO.discontinued, 'Perplexity-User', 5.5);
   for (const d of [20, 8, 3]) visit(HERO.discontinued, gbot, d);
+
+  // S8-S10 draw from a generator of their own, for their timing here and for
+  // their rows later, so adding them changed no other row.
+  const own = mulberry32(SEED + 1);
+  const ownVisit = (url, bot, days) =>
+    withRandom(own, () => push(typeof bot === 'function' ? bot() : bot, byUrl.get(url), at(days), own));
+
+  // S8: Googlebot and Bingbot reach the headlamps category after the release.
+  for (const d of [4.6, 2.2, 0.7]) ownVisit(HERO.titleBug, gbot, d);
+  ownVisit(HERO.titleBug, 'Bingbot', 3.4);
+
+  // S9: the new tents are found within days of their launch.
+  for (const [i, page] of pages.filter((p) => p.launched).entries()) {
+    for (const d of [3.6, 1.9, 0.6]) ownVisit(page.url, gbot, d - i * 0.2);
+    ownVisit(page.url, 'Bingbot', 2.8 - i * 0.3);
+    ownVisit(page.url, 'OAI-SearchBot', 2.1 - i * 0.3);
+    if (i === 0) for (const d of [1.4, 0.3]) ownVisit(page.url, 'ChatGPT-User', d);
+  }
+
+  // S10: bots keep fetching the sold-out products' "not found" pages.
+  for (const [i, page] of pages.filter((p) => p.soldOut).entries()) {
+    for (const d of [7.1, 4.3, 1.5]) ownVisit(page.url, gbot, d - i * 0.3);
+    ownVisit(page.url, 'Bingbot', 5.2 - i * 0.4);
+    if (i === 0) for (const d of [3.9, 0.9]) ownVisit(page.url, 'ChatGPT-User', d);
+  }
 }
 
 // =============================================================================
@@ -739,7 +839,7 @@ function toSql(rows) {
 
 const pages = buildSite();
 const visits = generateVisits(pages, buildPickers(pages));
-const rows = visits.map((v) => makeRow(v.page, v.bot, v.t));
+const rows = visits.map((v) => (v.rng ? withRandom(v.rng, () => makeRow(v.page, v.bot, v.t)) : makeRow(v.page, v.bot, v.t)));
 
 for (const name of new Set(rows.map((r) => r.bot_name))) {
   if (!botInfo(name)) throw new Error(`seed uses a bot missing from shared/bots.js: ${name}`);
