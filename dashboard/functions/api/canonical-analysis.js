@@ -19,17 +19,11 @@
 // canonical. The denominator is therefore smaller than the distribution card's
 // total (which also counts non_200/blocked) — that is expected.
 // Reads the same D1 database the tracking worker writes to (binding: DB).
-export async function onRequestGet({ env, request }) {
-  const url = new URL(request.url);
-  const rawFrom = url.searchParams.get("from");
-  const rawTo = url.searchParams.get("to");
-  const from = Number(rawFrom);
-  const to = Number(rawTo);
-  // Reject absent/blank params too — Number(null) and Number("") are 0 (finite).
-  if (rawFrom === null || rawTo === null || rawFrom === "" || rawTo === "" ||
-      !Number.isFinite(from) || !Number.isFinite(to)) {
-    return Response.json({ error: "from/to required (unix ms)" }, { status: 400 });
-  }
+import { NEWEST_SETTLED_SQL } from "../../lib/sql.js";
+import { handle, json, parseRange } from "../../lib/api.js";
+
+export const onRequestGet = handle(async ({ env, request }) => {
+  const { from, to } = parseRange(request);
 
   // The CASE is repeated in GROUP BY (not referenced by its alias): SQLite allows
   // the alias, but repeating it keeps the query unambiguous and matches the
@@ -37,7 +31,7 @@ export async function onRequestGet({ env, request }) {
   const { results } = await env.DB.prepare(
     `WITH latest AS (
        SELECT url, status, canonical, index_status,
-              ROW_NUMBER() OVER (PARTITION BY url ORDER BY ts DESC) AS rn
+              ROW_NUMBER() OVER (PARTITION BY url ORDER BY ${NEWEST_SETTLED_SQL}) AS rn
        FROM crawls
        WHERE ts BETWEEN ?1 AND ?2
      )
@@ -60,5 +54,5 @@ export async function onRequestGet({ env, request }) {
     .bind(from, to)
     .all();
 
-  return Response.json({ rows: results ?? [] });
-}
+  return json({ rows: results ?? [] });
+});

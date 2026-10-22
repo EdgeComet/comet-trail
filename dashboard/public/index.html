@@ -1,58 +1,78 @@
 <!doctype html>
-<!-- data-theme="dark" opts into the dark palette; remove it for the light theme. -->
-<html lang="en" data-theme="dark">
+<!-- Light theme by default; js/main.js applies a saved choice (data-theme="dark"). -->
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CometTrail</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 70 70'%3E%3Ccircle cx='35' cy='35' r='35' fill='%23FF6E49'/%3E%3Ccircle cx='24' cy='24' r='7.6' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/vendor/billboard/billboard.min.css">
   <link rel="stylesheet" href="/styles.css">
+  <script>
+    // Apply the saved theme before first paint so there is no light flash.
+    try { if (localStorage.getItem("theme") === "dark") document.documentElement.setAttribute("data-theme", "dark"); } catch {}
+  </script>
 </head>
 <body>
   <div class="app">
-    <header class="app-header">
-      <div class="header-content">
-        <div class="header-brand">CometTrail</div>
-        <div class="header-actions">
-          <button class="theme-toggle" id="theme-toggle" type="button"
-                  aria-label="Toggle light and dark theme">
-            <!-- sun (shown in dark mode → click for light) -->
-            <svg class="theme-icon theme-icon-sun" width="18" height="18" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="4"/>
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-            </svg>
-            <!-- moon (shown in light mode → click for dark) -->
-            <svg class="theme-icon theme-icon-moon" width="18" height="18" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-          </button>
+    <aside class="sidebar">
+      <a class="sidebar-brand" href="/log-analyzer" data-route>
+        <svg class="brand-mark" viewBox="0 0 70 70" aria-hidden="true">
+          <circle cx="35" cy="35" r="35" fill="#FF6E49"/>
+          <circle cx="24" cy="24" r="7.6" fill="#fff"/>
+        </svg>
+        <span class="brand-text">
+          <span class="brand-name">CometTrail</span>
+          <span class="brand-by">by EdgeComet</span>
+        </span>
+      </a>
+
+      <nav class="sidebar-nav" aria-label="Reports">
+        <div class="nav-group">
+          <div class="nav-group-label">Log Analyzer</div>
+          <a class="nav-item" href="/log-analyzer" data-route data-icon="activity">Overview</a>
+          <a class="nav-item" href="/ai-bots" data-route data-icon="sparkles">AI Bots</a>
         </div>
+        <div class="nav-group">
+          <div class="nav-group-label">Evergreen Crawl</div>
+          <a class="nav-item" href="/indexation" data-route data-icon="check">Indexation</a>
+          <a class="nav-item" href="/content" data-route data-icon="text">Content</a>
+          <a class="nav-item" href="/changes" data-route data-icon="history">Changes</a>
+        </div>
+        <div class="nav-group">
+          <div class="nav-group-label">Time machine</div>
+          <a class="nav-item" href="/pages" data-route data-icon="file">Pages</a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-site">
+          <span class="sidebar-site-host" id="site-host">&nbsp;</span>
+          <span id="site-meta">&nbsp;</span>
+        </div>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light and dark theme">
+          <svg class="theme-icon theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
+          <svg class="theme-icon theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
       </div>
-    </header>
+    </aside>
 
-    <div class="app-body">
-      <aside class="sidebar">
-        <nav class="sidebar-nav">
-          <a class="nav-item" href="/log-analyzer" data-route>Log Analyzer</a>
-          <a class="nav-item" href="/indexation" data-route>Indexation</a>
-          <a class="nav-item" href="/content" data-route>Content</a>
-        </nav>
-      </aside>
-
-      <!-- Router outlet: js/main.js paints the active page view in here. -->
-      <main class="main-content" id="view-outlet"></main>
-    </div>
+    <!-- Router outlet: js/main.js paints the active page view in here. -->
+    <main class="main-content">
+      <div class="view" id="view-outlet"></div>
+    </main>
   </div>
 
-  <!-- billboard.js charting library (d3 bundled). Loaded and available as the
-       global `bb` for charts wired into the dashboard later. -->
+  <!-- billboard.js charting library (d3 bundled), the global `bb`. Vendored so
+       the dashboard works offline. -->
   <script src="/vendor/billboard/billboard.pkgd.min.js"></script>
-
-  <!-- Provider/Chart framework entry point. -->
   <script type="module" src="/js/main.js"></script>
 </body>
 </html>

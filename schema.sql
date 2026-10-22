@@ -20,8 +20,15 @@ CREATE TABLE IF NOT EXISTS crawls (
   ts               INTEGER NOT NULL -- unix milliseconds
 );
 
-CREATE INDEX IF NOT EXISTS idx_crawls_url_ts       ON crawls(url, ts DESC);
-CREATE INDEX IF NOT EXISTS idx_crawls_bot_ts       ON crawls(bot_name, ts DESC);
-CREATE INDEX IF NOT EXISTS idx_crawls_ts           ON crawls(ts DESC);
-CREATE INDEX IF NOT EXISTS idx_crawls_status       ON crawls(status);
-CREATE INDEX IF NOT EXISTS idx_crawls_index_status ON crawls(index_status);
+-- Two indexes only. D1 bills every index entry as an extra row written, so each
+-- bot visit costs 1 + (number of indexes) writes against the daily quota.
+--   idx_crawls_ts     - every dashboard report filters on a date range
+--   idx_crawls_url_ts - the per-page history (time machine) reads one URL's rows
+CREATE INDEX IF NOT EXISTS idx_crawls_ts     ON crawls(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_crawls_url_ts ON crawls(url, ts DESC);
+
+-- Indexes from earlier versions that no query uses. Re-running this file
+-- (npm run db:init) removes them from an existing database.
+DROP INDEX IF EXISTS idx_crawls_bot_ts;
+DROP INDEX IF EXISTS idx_crawls_status;
+DROP INDEX IF EXISTS idx_crawls_index_status;

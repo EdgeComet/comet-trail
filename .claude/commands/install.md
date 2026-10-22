@@ -78,8 +78,8 @@ leave it unprotected?" Recommend locking — that's the usual reason to run this
 
 - **`pages-deploy`** (no `--access-enforced`). The vars stay as `REPLACE_ME`, so
   the middleware does not enforce and the dashboard is reachable by anyone.
-- Confirm `https://<dashboard host or *.pages.dev>/api/summary` returns
-  `{ total: N }`. Done.
+- Confirm `https://<dashboard host or *.pages.dev>/api/site` returns JSON with
+  `host` and `last_ts` (both `null` until the first bot visit is recorded). Done.
 - Remind the user it is unprotected, and that re-running `/install` can lock it later.
 
 ### If locked (opted in) — order matters (the middleware fails closed)
@@ -101,9 +101,9 @@ leave it unprotected?" Recommend locking — that's the usual reason to run this
     → writes the dashboard `[vars]`. **Only after steps 10–11 succeed.**
 13. **`pages-deploy --access-enforced`** → the guard refuses if the vars are still
     `REPLACE_ME`, so this confirms the ordering held.
-14. **`verify-access`** `--json '{"host":"<dashboard host>"}'` → expects 403 on the
-    raw `*.pages.dev` URL and a redirect to `*.cloudflareaccess.com` on the custom
-    domain. Tell the user to finish the email-PIN login in a browser to confirm
+14. **`verify-access`** `--json '{"host":"<dashboard host>"}'` → expects both the
+    raw `*.pages.dev` URL and the custom domain to serve no content: a redirect
+    to the `*.cloudflareaccess.com` login (what the Access plugin sends) or a 403. Tell the user to finish the email-PIN login in a browser to confirm
     end-to-end (the PIN step can't be scripted).
 
 ## Error handling

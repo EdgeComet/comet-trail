@@ -36,7 +36,7 @@ ORDER BY hits DESC;
 SELECT url, status,
        datetime(ts/1000,'unixepoch') AS seen
 FROM crawls
-WHERE bot_name = 'Googlebot'
+WHERE bot_name IN ('Googlebot', 'Googlebot-Smartphone')
   AND status >= 400
   AND ts > (unixepoch() - 7*86400) * 1000
 ORDER BY ts DESC;
@@ -96,7 +96,7 @@ SELECT c.url,
        json_extract(he.value, '$.lang') AS lang,
        json_extract(he.value, '$.href') AS href
 FROM crawls c, json_each(c.hreflangs) he
-WHERE c.bot_name = 'Googlebot'
+WHERE c.bot_name IN ('Googlebot', 'Googlebot-Smartphone')
 ORDER BY c.ts DESC, c.url, lang;
 ```
 
@@ -125,7 +125,7 @@ SELECT url,
        AVG(response_time_ms) AS avg_ms,
        COUNT(*)              AS hits
 FROM crawls
-WHERE bot_name = 'Googlebot' AND status = 200
+WHERE bot_name IN ('Googlebot', 'Googlebot-Smartphone') AND status = 200
 GROUP BY url
 ORDER BY slowest_ms DESC
 LIMIT 20;

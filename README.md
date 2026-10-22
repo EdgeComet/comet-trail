@@ -1,190 +1,203 @@
-# CometTrail — Evergreen Crawl PoC
+# CometTrail by EdgeComet
 
-A tiny Cloudflare Worker that watches Googlebot, Bingbot, GPTBot, ClaudeBot and friends crawl your site, extracts the SEO fields they saw, and appends a row to a Cloudflare D1 database. Append-only — every visit is preserved, so you can scroll back in time and see what each bot saw on any URL on any day.
+An evergreen crawl for your own site, on Cloudflare's free tier.
 
-This is a proof of concept for the **evergreen crawl** idea: instead of running a traditional SEO crawler against your site, observe the bots that are already crawling it and store what they fetched. No simulated traffic, no two-month crawl windows, no stale snapshots.
+CometTrail watches Googlebot, Bingbot, GPTBot, ClaudeBot, PerplexityBot and the other search and AI bots as they crawl your site. For every visit it stores the log line and the page the bot received: status, speed, title, meta description, canonical, robots directives, headings, hreflang and structured data. The result is a site audit you never have to run, and a history of every page as bots saw it.
 
-## What it does
+![The time machine for one product page: Googlebot Search has not seen the current version yet. Its last visit got version 5 of 6, with a canonical that pointed at the category page, while Bingbot, ChatGPT, Claude and Perplexity already fetched the fix](docs/images/time-machine.png)
+
+## Why an evergreen crawl
+
+A site crawler shows you what your crawler sees. A log file shows that Googlebot fetched a URL and got a 200, but not what was on the page. CometTrail records both, from the bots' own visits:
+
+- **No crawl to run.** Nothing to schedule, no crawl load on your origin, no stale export. The data updates with every bot visit and is freshest where bots return most.
+- **A time machine.** Every visit is kept, so you can open any URL and see each version bots received, when it changed, and which version each bot saw last. A fix is done when Googlebot has fetched it, and CometTrail shows you when that happened.
+- **Automatic comparison.** Every report compares the period with the one before: which pages lost indexability, which got it back, which release changed canonicals on 80 pages.
+- **AI bots by purpose.** Training crawls, AI search crawls and live fetches that an assistant makes for a person are counted apart and set next to Googlebot.
+
+Read more in [Evergreen Crawl: A New Way to See Your Site Through Googlebot's Eyes](https://edgecomet.com/blog/evergreen-crawl-a-new-way-to-see-your-site-through-googlebots-eyes/).
+
+## Try it locally in one minute
+
+You need Node.js 18 or newer. No Cloudflare account is needed for this step.
+
+```bash
+git clone https://github.com/EdgeComet/comet-trail.git
+cd comet-trail
+make dev
+```
+
+Open <http://localhost:8788>. `make dev` installs dependencies, creates a local database (Wrangler's local D1), fills it with 120 days of bot visits to a demo outdoor store at `gearshop.example`, and starts the dashboard. Nothing touches a remote database.
+
+The demo data follows a few stories you can look for:
+
+| Where to look | What you will find |
+|---|---|
+| Pages > `/p/ridgeline-gtx-hiking-boot` | A release broke its canonical 18 days ago and was fixed 12 days ago. Bingbot and the AI bots have fetched the fix; Googlebot has not. |
+| Indexation | `/c/sleeping-bags` and its products went `noindex` three days ago, a staging setting that leaked to production. |
+| Changes | The canonical bug and its fix, a title template rollout, guides that lost their H1. |
+| AI Bots | AI assistants fetching pages for people, more each week, and still asking for products the store no longer sells. |
+| Log Analyzer | A three-hour outage 15 days ago and the dip in Googlebot crawling that followed. |
+
+`make seed` regenerates the data (`SEED=` changes the randomness, `SCALE=2` doubles the traffic). `make help` lists every target.
+
+## What you get
+
+![The AI Bots report: AI user fetches, AI share of crawl, pages read by AI and AI 404s, above a chart of Googlebot Search, AI training, AI search and AI user fetches over 30 days](docs/images/ai-bots.png)
+
+| Report | Answers |
+|---|---|
+| **Log Analyzer > Overview** | How much did each bot family crawl, which status codes and response times did they get, and what did the newest visits receive? |
+| **Log Analyzer > AI Bots** | Why did each AI come (training, AI search, a live fetch for a person), which sections does each read compared with Googlebot, and which missing pages are assistants still asking for? |
+| **Evergreen Crawl > Indexation** | Which pages can be indexed, judged from the page bots received, and which changed verdict since the previous period? |
+| **Evergreen Crawl > Content** | Missing, duplicate and badly sized titles and descriptions, and H1 problems. |
+| **Evergreen Crawl > Changes** | Every change bots saw, dated by the first visit that showed it, grouped into release-sized events. |
+| **Pages** | Every URL bots fetched. Each opens its time machine: versions, what changed, which version each bot saw last, and the visit log. |
+
+Every report reads the period in the header: the last 24 hours, 7, 14, 30 or 90 days, or a custom range of up to 365 days. Change figures compare it with the period of the same length just before. The period is kept in the address bar (`?period=7d`, `?period=2026-09-01_2026-09-30`), so a reload or a shared link opens the same view. Days are UTC, like the charts. Light and dark themes are in the sidebar.
+
+## How it works
 
 ```
-Bot request → Cloudflare edge → [Worker] → Origin
-                                   │ ▲
-                                   │ │ response
-                                   ▼ │
-                            tee response body
-                                   │
-                       ┌───────────┴───────────┐
-                       ▼                       ▼
-                  back to the bot      HTMLRewriter parses,
-                  (no added latency)   D1 INSERT via ctx.waitUntil
+Bot request ──► Cloudflare edge ──► [Worker] ──► your origin
+                                       │  ▲
+                                       │  │ response
+                                       ▼  │
+                                tee the response body
+                                       │
+                         ┌─────────────┴─────────────┐
+                         ▼                           ▼
+                  back to the bot             HTMLRewriter reads the
+                  (no added latency)          SEO fields, D1 INSERT in
+                                              ctx.waitUntil
 ```
 
-Per captured request the worker stores:
+- **`worker/`** is the collector, a Cloudflare Worker on your site's routes. Human visitors pass straight through. When a known bot asks for an HTML page, the worker returns the origin's response unchanged and, after the response is on its way, parses the page and appends one row to D1.
+- **`dashboard/`** is a Cloudflare Pages app that reads the same D1 database: static frontend in `public/`, one API endpoint per report in `functions/api/`.
+- **`shared/`** holds the bot catalog and the indexability rule, used by both, and by the demo seed.
+
+### What each visit records
 
 | Field | Source |
 |---|---|
-| `url` | request URL |
-| `status` | HTTP status from origin |
-| `response_time_ms` | time spent waiting on origin |
-| `title` | `<title>` |
-| `meta_description` | `<meta name="description">` |
-| `canonical` | `<link rel="canonical">` |
-| `hreflangs` | JSON array of `<link rel="alternate" hreflang=…>` |
-| `h1`, `h2` | JSON arrays of heading text |
-| `bot_name` | which bot from `BOTS` matched |
-| `ts` | unix ms when the worker captured it |
+| `url`, `ts` | the request, and when the worker captured it |
+| `bot_name` | the matching entry in [`shared/bots.js`](shared/bots.js) |
+| `status`, `response_time_ms` | the origin's response (`NULL` status when the origin was unreachable) |
+| `title`, `meta_description`, `canonical` | `<title>`, `<meta name="description">`, `<link rel="canonical">` |
+| `meta_robots`, `meta_googlebot` | robots directives, as lists |
+| `h1`, `h2` | heading texts |
+| `hreflangs` | `<link rel="alternate" hreflang>` pairs |
+| `structured_data_types` | every JSON-LD `@type` |
+| `index_status` | `indexable`, `non_200`, `blocked_by_meta` or `non_canonical` |
 
-Pure passthrough: the worker never modifies the response the bot receives, and never adds latency to it (the D1 insert runs in `ctx.waitUntil` after the response is on its way).
+The full schema is in [`schema.sql`](schema.sql); ready-made SQL for common questions is in [`docs/queries.md`](docs/queries.md).
 
-## Prereqs
+### Bots
 
-- Cloudflare account (free tier is fine — D1's free limits cover any normal site)
-- The domain you want to track is already on Cloudflare (nameservers pointed at CF)
-- Node.js ≥ 18 locally
+[`shared/bots.js`](shared/bots.js) lists the tracked bots, groups them into the families the charts draw (Googlebot Search, Bingbot Search, ChatGPT, Claude, Perplexity, Meta AI, Other) and tags each AI bot with its purpose:
 
-## Layout
+| Purpose | Bots |
+|---|---|
+| User fetches (an assistant fetching a page for a person) | ChatGPT-User, Claude-User, Perplexity-User, Meta-ExternalFetcher, MistralAI-User |
+| AI search (building an AI search index) | OAI-SearchBot, Claude-SearchBot, PerplexityBot, Meta-WebIndexer, MistralAI-Index |
+| Training (collecting model training data) | GPTBot, ClaudeBot, Meta-ExternalAgent, CCBot, Bytespider, MistralAI-Training |
 
-This is a small monorepo (npm workspaces):
+Add a bot by adding one line to that file; the collector, the reports and the demo data all pick it up.
 
-- **`worker/`** — the collector: the Cloudflare Worker that captures bot crawls into D1.
-- **`dashboard/`** — a base Cloudflare Pages app that reads the same D1 (currently shows one number: total requests captured).
-- **`schema.sql`**, **`docs/`** — shared between both.
+## Install on your site
 
-## Setup
+You need a Cloudflare account (the free plan is enough) with the domain you want to track on Cloudflare.
 
-```bash
-git clone <this repo>
-cd comet-trail
-npm install          # installs both workspaces
-```
+### With Claude Code (recommended)
 
-### Install with Claude Code (recommended)
-
-Open this repo in [Claude Code](https://claude.com/claude-code) and run:
+Open this repository in [Claude Code](https://claude.com/claude-code) and run:
 
 ```
 /install
 ```
 
-It does the whole setup for you from **one** Cloudflare API token: creates the D1
-database, fills in both `wrangler.toml` files, picks your domain and wires the
-worker routes, applies the schema, deploys, and verifies that a bot crawl is
-actually captured. It can optionally lock the dashboard behind Cloudflare Access
-(email login) end-to-end — including the parts that normally require clicking
-through the Zero Trust dashboard.
+It sets everything up from **one** Cloudflare API token: creates the D1 database, fills in both `wrangler.toml` files, picks your domain and wires the worker routes, applies the schema, deploys, and checks that a bot visit is actually recorded. It can also lock the dashboard behind Cloudflare Access (email login), including the parts that normally need clicking through the Zero Trust dashboard.
 
-The only thing you do by hand is create the token (you can't make an API token
-without one). At <https://dash.cloudflare.com/profile/api-tokens> → **Create
-Token → Create Custom Token**, add these permissions:
+The only manual step is creating the token. At <https://dash.cloudflare.com/profile/api-tokens>, choose **Create Token > Create Custom Token** and add:
 
 | Permission | Scope | Needed for |
 |---|---|---|
 | Workers Scripts · Edit | Account | deploy the worker |
 | Workers Routes · Edit | Zone | bind the worker to your domain |
-| D1 · Edit | Account | create + query the database |
+| D1 · Edit | Account | create and query the database |
 | Cloudflare Pages · Edit | Account | deploy the dashboard |
 | Zone · Read | Zone | find your domain |
 | Account Settings · Read | Account | resolve your account |
-| Access: Apps and Policies · Edit | Account | *(only if locking the dashboard)* |
-| Access: Organizations, IdPs, and Groups · Edit | Account | *(only if locking the dashboard)* |
-| DNS · Edit | Zone | *(only if locking the dashboard)* |
+| Access: Apps and Policies · Edit | Account | *(only to lock the dashboard)* |
+| Access: Organizations, IdPs, and Groups · Edit | Account | *(only to lock the dashboard)* |
+| DNS · Edit | Zone | *(only to lock the dashboard)* |
 
-Paste the token when `/install` asks. **Never commit it or paste it into a
-file** — it's only held in memory during the run, and you can revoke it after.
+Paste the token when `/install` asks. Never commit it or paste it into a file: it is held in memory during the run only, and you can revoke it afterwards.
 
-> Not using Claude Code? The same steps run as `npm run setup -- <verb>` (see
-> `scripts/ct-install.mjs` for the verb list), or follow [`docs/manual-setup.md`](docs/manual-setup.md)
-> to do it entirely by hand.
+Not using Claude Code? The same steps run as `npm run setup -- <verb>` (the verbs are listed in `scripts/ct-install.mjs`), or follow [`docs/manual-setup.md`](docs/manual-setup.md) to do it by hand.
 
-## Verify it works
+### Check that it works
 
-After deploy, hit your live site with a bot user-agent:
+Visit your site as a bot, then open the dashboard:
 
 ```bash
 curl -A "Googlebot/2.1" https://your-domain.com/
+npm run db:recent      # the newest rows, from the terminal
 ```
 
-Then look at what landed:
+A normal browser visit adds no row: only bot user agents are recorded. Until the first visit arrives, the dashboard shows what to do next instead of empty charts. `npm run tail` streams the worker's logs while you wire the route.
 
-```bash
-npm run db:recent
-```
+### Locking the dashboard
 
-You should see one row per `curl`. Loading the same page from a normal browser should produce **no** row (only bot UAs are captured).
+`/install` asks whether to lock the dashboard behind Cloudflare Access, and locking is the recommended answer. The middleware in `dashboard/functions/_middleware.js` enforces login once the `CF_ACCESS_*` `[vars]` hold real values, which also covers the raw `*.pages.dev` URL and preview deployments. Until then the dashboard is public. Access needs a custom domain on a zone in your account, since it cannot sit in front of `*.pages.dev`. The manual steps are in [`docs/manual-setup.md`](docs/manual-setup.md#locking-the-dashboard-behind-cloudflare-access).
 
-`npm run tail` streams worker logs in real time — useful while you're getting the route wired up.
+### Updating an existing install
 
-## Dashboard
+After pulling a new version, re-apply the schema (`npm run db:init`; it is idempotent and drops indexes the current version no longer uses), then deploy both parts (`npm run deploy:worker`, `npm run deploy:dashboard`).
 
-`dashboard/` is a minimal Cloudflare Pages app that binds the **same** D1 database. It's built on a small **Provider/Chart** framework (`public/js/`): each visual component is fed by a dedicated data provider (a frontend object that caches its results, paired with a Pages Function endpoint). The first component is a row of summary stat cards — total requests, unique URLs, crawl efficiency, average response — served by `/api/metrics?from=&to=` and driven by a global date-range selector (7 / 30 / 90 days). It's a base to build on, not the full analytics UI.
+## Cloudflare free plan limits
 
-```bash
-npm run deploy:dashboard      # wrangler pages deploy
-```
+D1's free plan allows 100,000 rows written and 5 million rows read per day, and 500 MB per database ([D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/)). For CometTrail that means:
 
-Local preview against your D1: `cd dashboard && npx wrangler pages dev`.
+- **Writes.** Each bot visit writes about 3 rows: the visit and one entry in each of its two indexes, so the free plan records roughly 30,000 bot visits a day. Past a daily limit, D1 returns errors until the reset at 00:00 UTC ([D1 FAQ](https://developers.cloudflare.com/d1/reference/faq/)): the worker keeps serving your pages normally but records nothing, and the dashboard cannot load. The limits count every D1 database in the account.
+- **Reads.** Each report reads every visit in the selected period, once per chart, and again for the comparison period. Responses are cached in the browser for five minutes, so a reload costs nothing, but by our estimate one 30-day Log Analyzer view of a site with 10,000 bot visits a day reads about 2 million rows. On a busy site, use the 7-day view or move to the Workers Paid plan (25 billion rows read a month included).
+- **Storage.** A visit takes about 0.7 KB with its index entries (measured on the demo data), so 500 MB holds roughly 700,000 visits. Rows are never deleted; add a scheduled cleanup if that matters for your site.
 
-### Locking the dashboard behind Cloudflare Access
+## What is deliberately left out
 
-`/install` **asks** whether to lock the dashboard, and locking is the recommended path — so a dashboard set up through the installer is normally private, behind email login. Choose "lock it" and the installer does the whole Cloudflare Access setup for you (One-Time PIN provider, Access application, allow policy, custom domain, the `CF_ACCESS_*` `[vars]`, and the deploy — in the correct order, all from your API token).
+- **Bot verification.** Bots are matched by user agent only, so a scraper that claims to be Googlebot is counted as Googlebot. Verifying against the IP ranges each operator publishes, or a reverse DNS check, would close that gap.
+- **JavaScript rendering.** The worker records the HTML your origin sends, not the page a bot renders after running JavaScript. Most AI bots do not run JavaScript either, so for them this is exactly what they get; for Googlebot on a client-rendered site the content may be thinner than what Google indexes.
+- **Search Console data.** Impressions and clicks are not joined to pages.
+- **Non-HTML resources.** robots.txt, sitemaps, images, CSS and JS are passed through but not recorded.
+- **Pages no bot visits.** CometTrail does not crawl. A page shows up once a bot requests it.
 
-Access enforcement is **opt-in at the code level**: the middleware in `dashboard/functions/_middleware.js` only enforces once the `CF_ACCESS_*` `[vars]` hold real values. Until then — if you decline the lockdown in `/install`, or run a plain `npm run deploy:dashboard` without setting those vars — it serves the page to anyone. So an unconfigured deploy is unprotected; a completed lockdown is private.
-
-Once the vars are real, the middleware verifies the Access token on every request, which also locks the raw `*.pages.dev` URL and preview deployments — not just your custom domain. Login is enforced at the edge; who gets in is decided by the Access policy (allowed emails / domains), the single source of truth.
-
-A **custom domain is required** either way: Cloudflare Access can only protect a hostname on a zone in your own account, so it can't sit in front of `*.pages.dev`.
-
-Prefer to set it up by hand? The full step-by-step (custom domain, One-Time PIN, Access application, allow policy, and the `[vars]` to copy) is in [`docs/manual-setup.md`](docs/manual-setup.md#locking-the-dashboard-behind-cloudflare-access).
-
-## Querying the data
-
-`docs/queries.md` has ready-made SQL for common SEO questions: broken URLs Googlebot saw last week, title changes over time, hreflang coverage, bot mix on your site, pages missing a canonical, etc.
-
-Run any of them with:
-
-```bash
-npx wrangler d1 execute comet-trail --remote --command "SELECT …"
-```
-
-Dump the table for offline analysis (e.g., pipe into Claude):
-
-```bash
-npx wrangler d1 execute comet-trail --remote --json \
-  --command "SELECT * FROM crawls ORDER BY ts DESC LIMIT 1000" > crawls.json
-```
-
-## What's deliberately left out
-
-- **Bot verification.** UA match only — spoofed Googlebot UAs will be stored as if real. To filter, check `request.cf.verifiedBotCategory` in `index.js` before the BOTS lookup, or do a reverse-DNS verification.
-- **Full dashboard.** `dashboard/` shows only a total count so far. Charts, filters, and the per-URL time machine are a separate build on top of the `docs/queries.md` queries. (Auth is available now — see "Locking the dashboard behind Cloudflare Access".)
-- **JS rendering.** The worker sees what the origin sends, not what the bot renders after running JS. For JS-heavy SPAs the captured HTML may be near-empty.
-- **Retention / cleanup.** Append-only. If growth becomes a concern, add a scheduled trigger that prunes rows older than N days.
-- **Non-HTML resources.** robots.txt, sitemap.xml, images, CSS, JS are not captured. Add a special-case branch if you want to track changes to robots.txt or sitemaps.
-
-Each is a small addition — the code is intentionally short so it's easy to read and extend.
+[EdgeComet](https://edgecomet.com/evergreen-crawl/) adds JavaScript rendering, IP-verified bots and Search Console data to the same kind of reports. CometTrail is the small, readable version you can run and change yourself.
 
 ## Files
 
 ```
 .
-├── README.md                  you are here
-├── package.json               workspaces + top-level scripts (setup, deploy:*, db:*)
-├── schema.sql                 shared: crawls table + indexes
-├── docs/queries.md            shared: sample SQL for SEO analysis
-├── docs/manual-setup.md       hand-run setup + Access lockdown (the /install alternative)
-├── scripts/ct-install.mjs     installer helper: idempotent CF API + wrangler verbs
-├── .claude/commands/install.md  the /install flow that drives the helper
-├── worker/                    the collector
-│   ├── src/index.js           the worker (~150 lines)
-│   ├── wrangler.toml.default  config template — copy to wrangler.toml
-│   ├── wrangler.toml          your local config (gitignored): route, D1 binding
-│   └── package.json           scripts: dev, deploy, db:init, db:recent, tail
-└── dashboard/                 base Cloudflare Pages app (reads the same D1)
-    ├── public/index.html      dashboard page (loads the Provider/Chart framework)
-    ├── public/js/             Provider/Chart framework: core/, providers/, charts/, main.js
-    ├── functions/api/metrics.js   D1 aggregate (totals, efficiency, avg) → JSON
-    ├── functions/_middleware.js   optional Cloudflare Access lock (off until configured)
-    ├── wrangler.toml.default  Pages config template (same database_id)
-    ├── wrangler.toml          gitignored
-    └── package.json           scripts: dev, deploy
+├── shared/                    used by the worker, the dashboard and the seed
+│   ├── bots.js                bot catalog: user agents, families, AI purposes
+│   └── seo.js                 the indexability rule
+├── worker/src/index.js        the collector
+├── dashboard/
+│   ├── public/                the frontend (no build step)
+│   │   ├── js/core/           router, period, providers, DOM helpers
+│   │   ├── js/charts/         chart components (billboard.js)
+│   │   ├── js/pages/          one module per report
+│   │   └── vendor/            billboard.js and the Inter font, so it works offline
+│   ├── functions/api/         one endpoint per report (Pages Functions)
+│   ├── functions/_middleware.js   optional Cloudflare Access lock
+│   └── lib/                   shared API helpers, SQL fragments, page history
+├── scripts/
+│   ├── ct-install.mjs         installer verbs behind /install
+│   └── seed-demo.mjs          the demo store's data
+├── schema.sql                 the crawls table and its indexes
+├── docs/                      sample queries, manual setup, screenshots
+└── .claude/commands/install.md    the /install flow
 ```
+
+## License
+
+MIT

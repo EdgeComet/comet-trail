@@ -1,98 +1,113 @@
-// Log Analyzer page — what the bots crawled: volume, status, and speed.
-//
-// This is the only fully built view. It renders the date-range presets and the
-// summary stat cards (the framework's Provider -> Chart -> Dashboard wiring).
-// The provider and the chosen range live at module scope so the in-memory cache
-// and the active preset survive navigating away and back.
-import { DateRangeStore } from "../core/dateRange.js";
+// Log Analyzer > Overview - what the bots requested and what they received:
+// volume, families, status codes, speed, and the newest visits with the page
+// each one carried. Providers live at module scope so their in-memory cache
+// survives navigating away and back.
+import { globalRange } from "../core/dateRange.js";
 import { Dashboard } from "../core/registry.js";
-import { MetricsProvider } from "../providers/metricsProvider.js";
-import { BotActivityProvider } from "../providers/botActivityProvider.js";
-import { StatusDistributionProvider } from "../providers/statusDistributionProvider.js";
-import { ResponseTimeProvider } from "../providers/responseTimeProvider.js";
-import { StatCardGroupChart } from "../charts/statCardGroupChart.js";
-import { BotActivityChart } from "../charts/botActivityChart.js";
+import { Provider, BucketedProvider } from "../core/provider.js";
+import { reportHeader } from "../core/report.js";
+import { h, cssVar, fmtInt, fmtCompact, fmtPct1, fmtMs, fmtAgo, fmtDateTime, deltaEl, statusBadge, bucketBadge, urlCell } from "../core/ui.js";
+import { StatCardsChart } from "../charts/statCardsChart.js";
+import { TimeSeriesChart } from "../charts/timeSeriesChart.js";
+import { TableChart } from "../charts/tableChart.js";
 import { StatusDistributionChart } from "../charts/statusDistributionChart.js";
 import { ResponseTimeChart } from "../charts/responseTimeChart.js";
-import { pageHeader } from "../core/ui.js";
+import { StatusDistributionProvider } from "../providers/statusDistributionProvider.js";
+import { ResponseTimeProvider } from "../providers/responseTimeProvider.js";
 
-const PRESETS = [
-  { days: 7, label: "7 days" },
-  { days: 30, label: "30 days" },
-  { days: 90, label: "90 days" },
-];
-
-const metricsProvider = new MetricsProvider();
-const botActivityProvider = new BotActivityProvider();
+const metricsProvider = new Provider("metrics", "/api/metrics");
+const botActivityProvider = new BucketedProvider("botActivity", "/api/bot-activity");
 const statusDistProvider = new StatusDistributionProvider();
 const responseTimeProvider = new ResponseTimeProvider();
-let selectedDays = 30; // remembered across tab switches
+const recentProvider = new Provider("recentVisits", "/api/recent-visits");
 
-// Build the preset pill row and wire each button to the date-range store.
-function rangeBar(dateRange) {
-  const bar = document.createElement("div");
-  bar.className = "range-bar";
-  bar.setAttribute("role", "group");
-  bar.setAttribute("aria-label", "Date range");
+const big = (n) => (n >= 100000 ? fmtCompact(n) : fmtInt(n));
 
-  for (const { days, label } of PRESETS) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "range-btn";
-    btn.textContent = label;
-    const active = days === selectedDays;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-pressed", String(active));
-
-    btn.addEventListener("click", () => {
-      selectedDays = days;
-      bar.querySelectorAll(".range-btn").forEach((b) => {
-        const on = b === btn;
-        b.classList.toggle("active", on);
-        b.setAttribute("aria-pressed", String(on));
-      });
-      dateRange.setDays(days);
-    });
-
-    bar.appendChild(btn);
-  }
-  return bar;
+function metricCards({ current: c, previous: p }) {
+  return [
+    {
+      label: "Total Requests",
+      value: big(c.total_requests),
+      delta: deltaEl(c.total_requests, p?.total_requests),
+      foot: "from all bots",
+    },
+    {
+      label: "Unique URLs",
+      value: big(c.unique_urls),
+      delta: deltaEl(c.unique_urls, p?.unique_urls),
+      foot: "pages visited",
+      href: "/pages",
+    },
+    {
+      label: "Crawl Efficiency",
+      value: fmtPct1(c.crawl_efficiency),
+      delta: deltaEl(c.crawl_efficiency, p?.crawl_efficiency, { kind: "pp" }),
+      foot: "2xx responses",
+    },
+    {
+      label: "Avg Response",
+      value: fmtMs(c.avg_response_ms),
+      delta: deltaEl(c.avg_response_ms, p?.avg_response_ms, { good: "down" }),
+      foot: p ? `vs ${fmtMs(p.avg_response_ms)} before` : "response time",
+    },
+  ];
 }
+
+function botCell(row) {
+  return h(
+    "span",
+    { className: "bot-legend-item", style: { cursor: "default" } },
+    h("span", { className: "bot-legend-dot", style: { background: cssVar(`--bot-${row.family}`) } }),
+    h("span", { text: row.bot_name })
+  );
+}
+
+const RECENT_COLUMNS = [
+  { label: "When", nowrap: true, render: (r) => h("span", { title: fmtDateTime(r.ts), text: fmtAgo(r.ts) }) },
+  { label: "Bot", nowrap: true, render: botCell },
+  { label: "Page and the title the bot received", render: (r) => urlCell(r.url, r.title ?? "(no title)") },
+  { label: "Status", nowrap: true, render: (r) => statusBadge(r.status) },
+  { label: "Verdict", nowrap: true, render: (r) => bucketBadge(r.bucket) },
+  { label: "Response", num: true, render: (r) => fmtMs(r.response_time_ms) },
+];
 
 export function renderLogAnalyzer(outlet) {
   outlet.append(
-    pageHeader("Log Analyzer", "What the bots crawled — volume, status, and speed.")
+    reportHeader({
+      title: "Log Analyzer",
+      subtitle: "Every search and AI bot request, with the page each one received.",
+    })
   );
 
-  const dateRange = new DateRangeStore(selectedDays);
-  outlet.append(rangeBar(dateRange));
+  const metrics = h("div");
+  const activity = h("div", { className: "section" });
+  const statusDist = h("div");
+  const responseTime = h("div");
+  const recent = h("div", { className: "section" });
+  outlet.append(metrics, activity, h("div", { className: "chart-pair" }, statusDist, responseTime), recent);
 
-  const metrics = document.createElement("div");
-  metrics.id = "metrics";
-  outlet.append(metrics);
-
-  const botActivity = document.createElement("div");
-  botActivity.id = "bot-activity";
-  botActivity.style.marginTop = "24px";
-  outlet.append(botActivity);
-
-  // Half-width row: the status chart sits in the first ~50% track, the
-  // response-time chart in the second (see .chart-pair in styles.css).
-  const distRow = document.createElement("div");
-  distRow.className = "chart-pair";
-  const statusDist = document.createElement("div");
-  const responseTime = document.createElement("div");
-  distRow.append(statusDist, responseTime);
-  outlet.append(distRow);
-
-  const dashboard = new Dashboard(dateRange);
-  dashboard.add(new StatCardGroupChart(metrics, metricsProvider));
-  dashboard.add(new BotActivityChart(botActivity, botActivityProvider));
+  const dashboard = new Dashboard(globalRange);
+  dashboard.add(new StatCardsChart(metrics, metricsProvider, metricCards));
+  dashboard.add(
+    new TimeSeriesChart(activity, botActivityProvider, {
+      title: "Bot Activity",
+      token: (key) => `--bot-${key}`,
+      summary: true,
+    })
+  );
   dashboard.add(new StatusDistributionChart(statusDist, statusDistProvider));
   dashboard.add(new ResponseTimeChart(responseTime, responseTimeProvider));
-  dashboard.start(); // initial paint for the current range
+  dashboard.add(
+    new TableChart(recent, recentProvider, {
+      title: "Latest bot visits",
+      subtitle: "each log line carries the page the bot received",
+      columns: RECENT_COLUMNS,
+      link: { href: "/pages", label: "All pages" },
+    })
+  );
+  dashboard.start();
 
-  // Router teardown: detach the range subscription and destroy charts (the
-  // billboard instance holds a window-resize listener) before the next view.
+  // Router teardown: detach the range subscription and destroy charts (billboard
+  // instances hold a window-resize listener) before the next view.
   return () => dashboard.destroy();
 }

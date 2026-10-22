@@ -14,8 +14,9 @@ help: ## Show this help
 dev: install ## Run the dashboard locally with seeded test data (local D1 + live reload)
 	npm -w dashboard run dev:local
 
-seed: ## Regenerate the local demo dataset (override rows with COUNT=, RNG with SEED=)
-	node scripts/seed-demo.mjs $(COUNT)
+seed: install ## Regenerate the demo dataset and load it into the local D1 (override SEED=, SCALE=)
+	npm -w dashboard run db:local:schema
+	SEED=$(SEED) SCALE=$(SCALE) npm -w dashboard run db:local:seed
 
 install: ## Install workspace dependencies
 	@[ -d node_modules ] || npm install

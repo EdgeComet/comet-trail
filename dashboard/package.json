@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Base read-only dashboard for CometTrail crawl data (Cloudflare Pages + D1).",
+  "description": "CometTrail dashboard: Log Analyzer, AI Bots, Indexation, Content, Changes and the per-page time machine (Cloudflare Pages + D1).",
+  "type": "module",
   "scripts": {
     "dev": "wrangler pages dev",
     "dev:local": "npm run db:local:schema && npm run db:local:seed && wrangler pages dev --binding CF_ACCESS_TEAM_DOMAIN=REPLACE_ME CF_ACCESS_AUD=REPLACE_ME --live-reload",

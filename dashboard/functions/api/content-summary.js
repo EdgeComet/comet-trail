@@ -13,23 +13,14 @@
 // overlap by design: a page with no title usually has no H1 either, so it lands
 // in both Missing Titles and H1 Issues. h1 is stored as a JSON array string, so
 // json_array_length gives the heading count. Reads the same D1 database the
-// tracking worker writes to (binding: DB).
-export async function onRequestGet({ env, request }) {
-  const url = new URL(request.url);
-  const rawFrom = url.searchParams.get("from");
-  const rawTo = url.searchParams.get("to");
-  const from = Number(rawFrom);
-  const to = Number(rawTo);
-  // Reject absent/blank params too — Number(null) and Number("") are 0 (finite).
-  if (rawFrom === null || rawTo === null || rawFrom === "" || rawTo === "" ||
-      !Number.isFinite(from) || !Number.isFinite(to)) {
-    return Response.json({ error: "from/to required (unix ms)" }, { status: 400 });
-  }
+// tracking worker writes to (binding: DB). `previous` holds the same counts for
+// the period before, or null when the data does not reach back that far.
+import { NEWEST_SETTLED_SQL } from "../../lib/sql.js";
+import { handle, json, parseRange, firstVisitTs, previousIsComplete } from "../../lib/api.js";
 
-  const row = await env.DB.prepare(
-    `WITH latest AS (
+const SQL = `WITH latest AS (
        SELECT url, status, title, meta_description, h1,
-              ROW_NUMBER() OVER (PARTITION BY url ORDER BY ts DESC) AS rn
+              ROW_NUMBER() OVER (PARTITION BY url ORDER BY ${NEWEST_SETTLED_SQL}) AS rn
        FROM crawls
        WHERE ts BETWEEN ?1 AND ?2
      ),
@@ -50,16 +41,20 @@ export async function onRequestGet({ env, request }) {
        SUM(CASE WHEN meta_description IS NULL OR TRIM(meta_description) = '' THEN 1 ELSE 0 END) AS missing_descriptions,
        SUM(CASE WHEN title IN (SELECT title FROM dups)            THEN 1 ELSE 0 END) AS duplicate_titles,
        SUM(CASE WHEN h1 IS NULL OR h1 = '' OR json_array_length(h1) <> 1 THEN 1 ELSE 0 END) AS h1_issues
-     FROM snap`
-  )
-    .bind(from, to)
-    .first();
+     FROM snap`;
 
-  // An empty window yields one row whose SUMs are all NULL — coerce to 0.
-  return Response.json({
-    missing_titles: row.missing_titles ?? 0,
-    missing_descriptions: row.missing_descriptions ?? 0,
-    duplicate_titles: row.duplicate_titles ?? 0,
-    h1_issues: row.h1_issues ?? 0,
-  });
-}
+const clean = (row) => ({
+  missing_titles: row?.missing_titles ?? 0,
+  missing_descriptions: row?.missing_descriptions ?? 0,
+  duplicate_titles: row?.duplicate_titles ?? 0,
+  h1_issues: row?.h1_issues ?? 0,
+});
+
+export const onRequestGet = handle(async ({ env, request }) => {
+  const range = parseRange(request);
+  const current = clean(await env.DB.prepare(SQL).bind(range.from, range.to).first());
+  const previous = previousIsComplete(range, await firstVisitTs(env))
+    ? clean(await env.DB.prepare(SQL).bind(range.prevFrom, range.prevTo).first())
+    : null;
+  return json({ ...current, previous });
+});

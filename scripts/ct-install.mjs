@@ -467,29 +467,31 @@ function dashVarsWrite(args) {
   return ok("written", { file: "dashboard/wrangler.toml" });
 }
 
-// verify-access: the raw *.pages.dev URL must 403; the custom domain must
-// redirect to the Access login.
+// verify-access: neither the raw *.pages.dev URL nor the custom domain may
+// serve content without a login. The Access plugin answers a request without a
+// token by redirecting (302) to the team's Access login, and some paths answer
+// a bare 403; both count as locked. A 200 means the dashboard is public.
 async function verifyAccess(args) {
   const { host } = args;
   if (!host) return fail("verify-access", "need host");
 
-  const pagesRes = await fetch(`https://${PAGES_PROJECT}.pages.dev/api/summary`, { redirect: "manual" }).catch((e) => ({ error: e }));
-  const pagesStatus = pagesRes && !pagesRes.error ? pagesRes.status : null;
+  const probe = async (url) => {
+    const res = await fetch(url, { redirect: "manual" }).catch((e) => ({ error: e }));
+    const status = res && !res.error ? res.status : null;
+    const location = res && res.headers ? res.headers.get("location") : null;
+    const toLogin = status >= 300 && status < 400 && !!location && /cloudflareaccess\.com/.test(location);
+    return { status, location, locked: status === 403 || toLogin };
+  };
 
-  const hostRes = await fetch(`https://${host}/`, { redirect: "manual" }).catch((e) => ({ error: e }));
-  const hostStatus = hostRes && !hostRes.error ? hostRes.status : null;
-  const location = hostRes && hostRes.headers ? hostRes.headers.get("location") : null;
+  const pages = await probe(`https://${PAGES_PROJECT}.pages.dev/api/site`);
+  const custom = await probe(`https://${host}/`);
 
-  const pagesLocked = pagesStatus === 403;
-  const redirected = hostStatus >= 300 && hostStatus < 400 &&
-    !!location && /cloudflareaccess\.com/.test(location);
-
-  if (pagesLocked && redirected) {
-    return ok("enforced", { pagesStatus, hostStatus, location });
+  if (pages.locked && custom.locked) {
+    return ok("enforced", { pagesStatus: pages.status, hostStatus: custom.status, location: custom.location });
   }
   return fail("verify-access",
-    `Expected 403 on *.pages.dev (got ${pagesStatus}) and a redirect to *.cloudflareaccess.com (got ${hostStatus} -> ${location || "none"}). The custom domain may still be issuing its certificate.`,
-    { pagesStatus, hostStatus, location, pagesLocked, redirected });
+    `Expected a 403 or a redirect to *.cloudflareaccess.com on both *.pages.dev (got ${pages.status} -> ${pages.location || "none"}) and ${host} (got ${custom.status} -> ${custom.location || "none"}). The custom domain may still be issuing its certificate.`,
+    { pagesStatus: pages.status, pagesLocation: pages.location, hostStatus: custom.status, location: custom.location });
 }
 
 // ---------------------------------------------------------------------------

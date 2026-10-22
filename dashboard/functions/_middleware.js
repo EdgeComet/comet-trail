@@ -9,8 +9,9 @@
 //   - Once both vars hold real values (see README "Locking the dashboard behind
 //     Cloudflare Access", or run `/install` in Claude Code), it verifies the
 //     Cloudflare Access JWT (Cf-Access-Jwt-Assertion) on every request:
-//     signature against the team JWKS, plus `aud` and issuer. Requests without a
-//     valid token fail closed with 403.
+//     signature against the team JWKS, plus `aud` and issuer. A request
+//     without a valid token gets no content: the plugin redirects it (302) to
+//     the team's Access login.
 //
 // Enforcing is what locks the *.pages.dev URL and every per-deploy preview
 // alias — those hostnames are not fronted by the Access app, so they carry no

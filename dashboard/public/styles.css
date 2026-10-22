@@ -1,152 +1,170 @@
-/* CometTrail dashboard — design foundation.
+/* CometTrail dashboard - design foundation.
  *
- * Extracted from jsbug (jsbug.org) so the dashboard shares its visual language:
- * monospace-first, a warm coral accent on cool blue/slate tones, light + dark
- * themes. Plain CSS — no build step. Tokens keep jsbug's exact variable names;
- * component classes are global kebab-case (.btn, .card, .data-table, ...).
+ * Tokens follow the EdgeComet dashboard (cloud.edgecomet.com) so CometTrail and
+ * the product read as one family: Inter, a coral accent, white cards on a light
+ * gray ground, and the same data palette. Plain CSS, no build step.
  *
- * Source of the token values: jsbug/frontend/src/index.css.
- * Default theme is light (:root). Opt into dark with <html data-theme="dark">.
+ * Default theme is light (:root). <html data-theme="dark"> opts into dark; the
+ * toggle in the sidebar persists the choice (js/main.js).
  */
 
-/* ========================================
-   Design tokens — light (default)
-   ======================================== */
-:root {
-  /* Light backgrounds */
-  --bg-primary: #F8FAFC;
-  --bg-secondary: #EEF2F7;
-  --bg-tertiary: #E2E8F0;
-  --bg-white: #FFFFFF;
-
-  /* Dark accents (header bar, dark surfaces) */
-  --dark-primary: #0A1628;
-  --dark-secondary: #152238;
-  --dark-tertiary: #1E3A5F;
-
-  /* Accent colors */
-  --accent-coral: #FF6B4A;
-  --accent-coral-dark: #E55A3A;
-  --accent-orange: #FF8C42;
-  --lime: #84CC16;            /* yellow-green, sits between amber --warning and green --success */
-  --electric-blue: #0EA5E9;
-  --electric-blue-dark: #0284C7;
-
-  /* Text colors */
-  --text-dark: #0F172A;
-  --text-body: #334155;
-  --text-muted: #64748B;
-  --text-dim: #94A3B8;
-  --text-light: #F1F5F9;
-
-  /* Status colors */
-  --success: #10B981;
-  --success-light: #D1FAE5;
-  --warning: #F59E0B;
-  --warning-light: #FEF3C7;
-  --warning-lighter: #F5F4EF;
-  --warning-strong: #F97316;  /* orange, between amber --warning and red --error */
-  --error: #EF4444;
-  --error-light: #FEE2E2;
-
-  /* Borders */
-  --border-light: #E2E8F0;
-  --border-medium: #CBD5E1;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
-
-  /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
-
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.3s ease;
-
-  /* Resource / category type colors (bots, resource types, ...) */
-  --type-document: #3B82F6;
-  --type-script: #F59E0B;
-  --type-stylesheet: #8B5CF6;
-  --type-image: #22C55E;
-  --type-font: #EC4899;
-  --type-xhr: #06B6D4;
-  --type-other: #6B7280;
-
-  /* Bot-activity series colors — one per chart series (see botActivityChart.js).
-     --bot-other is overridden in dark mode for contrast (slate is too dim there). */
-  --bot-googlebot: #FF8C42;
-  --bot-bingbot: #0EA5E9;
-  --bot-gptbot: #22C55E;
-  --bot-claudebot: #8B5CF6;
-  --bot-perplexity: #EC4899;
-  --bot-other: #94A3B8;
-
-  /* Table header sort */
-  --table-header-sort-bg: #E0F2FE;
-  --table-header-sort-text: #0EA5E9;
-
-  /* Chrome (header + sidebar) — light theme: light surfaces, dark text */
-  --header-bg: var(--bg-white);
-  --header-border: var(--border-light);
-  --header-text: var(--text-dark);
-  --sidebar-bg: var(--bg-white);
-  --sidebar-border: var(--border-light);
-  --nav-text: var(--text-muted);
-  --nav-hover-bg: var(--bg-tertiary);
-  --nav-hover-text: var(--text-dark);
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/vendor/inter/inter-latin-wght.woff2") format("woff2");
 }
 
 /* ========================================
-   Design tokens — dark (GitHub-inspired)
+   Design tokens - light (default)
    ======================================== */
-[data-theme="dark"] {
-  /* Backgrounds */
-  --bg-primary: #151e29;
-  --bg-secondary: #141a24;
-  --bg-tertiary: #1e232b;
-  --bg-white: #18202b;
+:root {
+  /* Surfaces */
+  --bg-primary: #f9fafb;      /* page ground */
+  --bg-secondary: #f3f4f6;    /* hover, table head */
+  --bg-tertiary: #e5e7eb;     /* bar tracks, wells */
+  --bg-white: #ffffff;        /* cards */
+  --sidebar-bg: #f2f4f7;
+
+  /* Brand */
+  --accent-coral: #ff6b4a;
+  --accent-coral-dark: #e55a3a;
+  --primary-light: #fef0ed;
+  --primary-lighter: #fef7f5;
+  --primary-text: #bc4622;    /* coral as small text: 5.2:1 on white */
 
   /* Text */
-  --text-dark: #f0f6fc;
-  --text-body: #c9d1d9;
-  --text-muted: #8b949e;
-  --text-dim: #6e7681;
-  --text-light: #f0f6fc;
+  --text-dark: #111827;
+  --text-body: #374151;
+  --text-muted: #686f7a;
+  --text-dim: #9ca3af;
+
+  /* Status */
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --success-text: #067647;
+  --error: #ef4444;
+  --error-light: #fee2e2;
+  --error-text: #b42318;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --warning-text: #a15c07;
+  --warning-strong: #fb923c;
+  --info: #3b82f6;
+  --info-light: #dbeafe;
+  --info-text: #175cd3;
+  --violet-light: #ede9fe;
+  --violet-text: #6d28d9;
+
+  /* Data palette (charts) */
+  --green: #34d399;
+  --lime: #a3e635;
+  --amber: #fbbf24;
+  --orange: #fb923c;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --violet: #a78bfa;
+  --indigo: #6366f1;
+  --cyan: #22d3ee;
+  --pink: #f472b6;
+  --slate: #94a3b8;
+
+  /* Bot families (charts/botActivityChart.js and the AI page) */
+  --bot-googlebot: var(--orange);
+  --bot-bingbot: var(--blue);
+  --bot-chatgpt: var(--green);
+  --bot-claude: var(--violet);
+  --bot-perplexity: var(--pink);
+  --bot-meta: var(--indigo);
+  --bot-other: var(--slate);
+
+  /* AI bot purposes */
+  --purpose-user: var(--green);
+  --purpose-search: var(--blue);
+  --purpose-training: var(--amber);
+
+  /* Indexability buckets */
+  --idx-indexable: var(--green);
+  --idx-noindex: var(--red);
+  --idx-canonical: var(--violet);
+  --idx-redirect: var(--blue);
+  --idx-4xx: var(--amber);
+  --idx-5xx: #dc2626;
 
   /* Borders */
-  --border-light: #30363d;
-  --border-medium: #484f58;
+  --border-light: #e5e7eb;
+  --border-medium: #d1d5db;
 
-  /* Status colors — adjusted for dark backgrounds */
-  --success-light: rgba(16, 185, 129, 0.15);
-  --warning-light: rgba(245, 158, 11, 0.15);
-  --warning-lighter: rgba(245, 158, 11, 0.08);
-  --error-light: rgba(239, 68, 68, 0.15);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
-  /* Shadows — darker for dark mode */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+  /* Interaction */
+  --hover-bg: #f3f4f6;
+  --active-bg: #fef0ed;
 
-  /* Table header sort */
-  --table-header-sort-bg: #1a3a4a;
-  --table-header-sort-text: #38bdf8;
+  /* Shape and type */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
-  /* Bot-activity: lift the slate "Other" line off the dark background. */
-  --bot-other: #CBD5E1;
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
 
-  /* Chrome (header + sidebar) — dark theme: dark surfaces, light text */
-  --header-bg: var(--dark-primary);
-  --header-border: var(--dark-tertiary);
-  --header-text: var(--text-light);
-  --sidebar-bg: var(--dark-secondary);
-  --sidebar-border: var(--dark-tertiary);
-  --nav-text: var(--text-dim);
-  --nav-hover-bg: var(--dark-tertiary);
-  --nav-hover-text: var(--text-light);
+  --sidebar-width: 232px;
+
+  color-scheme: light;
+}
+
+/* ========================================
+   Design tokens - dark
+   ======================================== */
+[data-theme="dark"] {
+  --bg-primary: #1a1f2e;
+  --bg-secondary: #2d3548;
+  --bg-tertiary: #3a4459;
+  --bg-white: #242b3d;
+  --sidebar-bg: #1e2433;
+
+  --primary-light: rgba(255, 107, 74, 0.3);
+  --primary-lighter: rgba(255, 107, 74, 0.15);
+  --primary-text: #ffab99;
+
+  --text-dark: #f3f4f6;
+  --text-body: #d1d5db;
+  --text-muted: #9aa3b2;
+  --text-dim: #7c8597;
+
+  --success-light: rgba(16, 185, 129, 0.2);
+  --success-text: #34d399;
+  --error-light: rgba(239, 68, 68, 0.2);
+  --error-text: #ff7a70;
+  --warning-light: rgba(245, 158, 11, 0.2);
+  --warning-text: #fbbf24;
+  --info-light: rgba(59, 130, 246, 0.2);
+  --info-text: #60a5fa;
+  --violet-light: rgba(167, 139, 250, 0.2);
+  --violet-text: #c4b5fd;
+
+  --border-light: #3a4459;
+  --border-medium: #46516a;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+  --hover-bg: #2d3548;
+  --active-bg: rgba(255, 107, 74, 0.2);
+
+  --bot-other: #cbd5e1;
+
+  color-scheme: dark;
 }
 
 /* ========================================
@@ -159,230 +177,847 @@
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
 }
 
 body {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text-body);
   background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
 }
 
 a {
-  color: var(--electric-blue);
+  color: var(--primary-text);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--electric-blue-dark);
-  text-decoration: underline;
+  color: var(--accent-coral-dark);
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Custom scrollbars (Webkit) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-medium);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-medium) var(--bg-secondary);
+  scrollbar-color: var(--border-medium) transparent;
 }
 
 /* ========================================
-   Layout / containers
+   App shell: sidebar + main column
    ======================================== */
 .app {
-  min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  min-height: 100vh;
 }
 
-.app-header {
+.sidebar {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: var(--header-bg);
-  padding: 16px 32px;
-  box-shadow: var(--shadow-sm);
-  border-bottom: 1px solid var(--header-border);
-}
-
-.header-content {
+  flex-shrink: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
   display: flex;
-  align-items: center;
-  gap: 24px;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-light);
 }
 
-.header-brand {
+.sidebar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--header-text);
-  letter-spacing: -0.02em;
+  height: 64px;
+  padding: 0 18px;
+  color: var(--text-dark);
+  text-decoration: none;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
+.sidebar-brand:hover {
+  color: var(--text-dark);
 }
 
-/* Row beneath the header: fixed-width sidebar + flexible content. */
-.app-body {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-
-.main-content {
-  flex: 1;
-  min-width: 0;
-  padding: 32px 40px;
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-}
-
-/* ========================================
-   Sidebar (left navigation)
-   ======================================== */
-.sidebar {
+.brand-mark {
   flex-shrink: 0;
-  width: 240px;
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--sidebar-border);
-  padding: 16px 12px;
+  width: 26px;
+  height: 26px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.brand-by {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 16px;
+}
+
+.nav-group + .nav-group {
+  margin-top: 14px;
+}
+
+.nav-group-label {
+  padding: 6px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  height: 38px;
+  padding: 0 18px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--nav-text);
-  border-radius: 6px;
-  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-body);
+  border-left: 3px solid transparent;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
+.nav-item svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
 .nav-item:hover {
-  background: var(--nav-hover-bg);
-  color: var(--nav-hover-text);
-  text-decoration: none;
+  background: var(--hover-bg);
+  color: var(--text-dark);
 }
 
 .nav-item.active {
-  background: rgba(255, 107, 74, 0.18);
+  background: var(--active-bg);
+  color: var(--primary-text);
+  border-left-color: var(--accent-coral);
+}
+
+.nav-item.active svg {
   color: var(--accent-coral);
 }
 
-/* ========================================
-   Theme toggle (header right)
-   ======================================== */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sidebar-site {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sidebar-site-host {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  color: var(--nav-text);
+  color: var(--text-muted);
   background: transparent;
-  border: 1px solid var(--header-border);
-  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
 .theme-toggle:hover {
-  color: var(--nav-hover-text);
-  background: var(--nav-hover-bg);
+  color: var(--text-dark);
+  background: var(--hover-bg);
 }
 
-/* Show the sun in dark mode, the moon in light mode. */
-.theme-icon-moon { display: none; }
+/* Show the sun in dark mode (click for light), the moon in light mode. */
+.theme-icon-sun { display: none; }
 [data-theme="dark"] .theme-icon-sun { display: block; }
 [data-theme="dark"] .theme-icon-moon { display: none; }
-:root:not([data-theme="dark"]) .theme-icon-sun { display: none; }
-:root:not([data-theme="dark"]) .theme-icon-moon { display: block; }
 
-.content-wrap {
-  max-width: 1280px;
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 40px 56px;
+}
+
+.view {
+  max-width: 1440px;
   margin: 0 auto;
 }
 
 /* ========================================
-   Page header (per routed view)
-   ----------------------------------------
-   A title + subtitle block each page view renders above its body, so the
-   three routes (Log Analyzer / Indexation / Content) share one heading style.
+   Report header: title + period, then tabs
    ======================================== */
-.page-header {
-  margin-bottom: 24px;
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
 }
 
-.page-title {
+.report-heading {
+  min-width: 0;
+}
+
+.report-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
   color: var(--text-dark);
 }
 
-.page-subtitle {
+.report-subtitle {
   margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Period: one bordered box, preset cells split by hairlines, then the dates. */
+.period {
+  display: inline-flex;
+  align-items: stretch;
+  height: 36px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.period-btn {
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.period-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-dark);
+}
+
+.period-btn.active {
+  background: var(--active-bg);
+  color: var(--primary-text);
+}
+
+/* The date range: a button that opens the period popover. */
+.period-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  font-size: 13px;
+  color: var(--text-body);
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.period-dates:hover,
+.period-dates[aria-expanded="true"] {
+  background: var(--hover-bg);
+}
+
+.period-dates svg {
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+}
+
+.period-name {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.period-wrap {
+  position: relative;
+}
+
+/* Period popover: presets on the left, a custom From / To range on the right. */
+.period-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.period-pop-body {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.period-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border-light);
+}
+
+.period-preset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text-body);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.period-preset:hover {
+  background: var(--hover-bg);
+  color: var(--text-dark);
+}
+
+.period-preset.active {
+  background: var(--active-bg);
+  color: var(--primary-text);
+}
+
+.period-preset svg {
+  width: 15px;
+  height: 15px;
+}
+
+.period-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 6px 4px 8px;
+}
+
+.period-custom-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.period-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.period-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.period-field .input {
+  height: 34px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.period-error {
+  min-height: 18px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--error-text);
+}
+
+.period-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.period-note {
+  margin: 8px 0 0;
+  padding: 8px 10px 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
+}
+
+/* "Back to the list" link above a detail page's title. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.back-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.back-link:hover {
+  color: var(--text-dark);
+}
+
+/* Underline tabs (also used as a section switcher inside a page). */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tab {
+  position: relative;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text-dark);
+}
+
+.tab.active {
+  color: var(--primary-text);
+  background: var(--active-bg);
+}
+
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  background: var(--accent-coral-dark);
+}
+
+/* ========================================
+   Card
+   ======================================== */
+.card,
+.panel {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.card-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.card-title,
+.card-title-lg {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-dark);
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.card-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.card-header-lg {
+  padding: 16px 24px;
+}
+
+.card-body,
+.card-body-lg {
+  padding: 20px 24px;
+}
+
+/* For tables that draw their own edges. */
+.card-body-flush {
+  padding: 0;
+}
+
+.card-footer {
+  padding: 12px 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
+}
+
+/* ========================================
+   Layout helpers
+   ======================================== */
+.section {
+  margin-top: 24px;
+}
+
+.chart-section {
+  margin-top: 24px;
+}
+
+/* Two cards side by side, one column on narrow screens. */
+.chart-pair,
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.grid-2-1 {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (max-width: 1100px) {
+  .grid-2-1 { grid-template-columns: 1fr; }
+}
+
+/* ========================================
+   Stat cards (KPI tiles)
+   ======================================== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-body);
+}
+
+.stat-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stat-value-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 12px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Change against the previous period. The arrow gives the direction; the
+   modifier gives the sentiment, so a falling metric can still be good. */
+.stat-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.stat-delta-positive { color: var(--success); }
+.stat-delta-negative { color: var(--error); }
+
+.stat-footnote {
+  margin-top: 12px;
   font-size: 13px;
   color: var(--text-muted);
 }
 
 /* ========================================
-   Empty state (placeholder pages)
-   ----------------------------------------
-   A card that stands in for a page whose widgets are not built yet. The lead
-   line introduces it; the list spells out the planned contents.
+   Badges
    ======================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--bg-secondary);
+  color: var(--text-body);
+}
+
+.badge-success { background: var(--success-light); color: var(--success-text); }
+.badge-error   { background: var(--error-light);   color: var(--error-text); }
+.badge-warning { background: var(--warning-light); color: var(--warning-text); }
+.badge-info    { background: var(--info-light);    color: var(--info-text); }
+.badge-violet  { background: var(--violet-light);  color: var(--violet-text); }
+.badge-primary { background: var(--primary-light); color: var(--primary-text); }
+
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ========================================
+   Buttons and inputs
+   ======================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn svg {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent-coral);
+  color: #fff;
+}
+
+.btn-primary:not(:disabled):hover {
+  background: var(--accent-coral-dark);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: var(--bg-white);
+  color: var(--text-body);
+  border-color: var(--border-light);
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: var(--hover-bg);
+  color: var(--text-dark);
+}
+
+.btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-dark);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input::placeholder {
+  color: var(--text-dim);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 3px rgba(255, 107, 74, 0.2);
+}
+
+.search-field {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+}
+
+.search-field svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.search-field .input {
+  padding-left: 34px;
+}
+
+/* ========================================
+   Chart framework states
+   ======================================== */
+.spinner {
+  width: 24px;
+  height: 24px;
+  margin: 32px auto;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--accent-coral);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.chart-error {
+  margin: 16px 0;
+  font-size: 14px;
+  color: var(--error-text);
+}
+
+/* Neutral "no data" message inside a card (distinct from .chart-error). */
+.bot-empty,
+.empty-note {
+  margin: 0;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
 .empty-state {
-  max-width: 560px;
+  max-width: 640px;
 }
 
 .empty-state-lead {
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-dark);
 }
 
@@ -395,383 +1030,27 @@ a:hover {
   color: var(--text-muted);
 }
 
-.empty-state-list li {
-  line-height: 1.4;
-}
-
-/* ========================================
-   Card / panel
-   ======================================== */
-.card,
-.panel {
-  background: var(--bg-white);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.card-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-}
-
-/* Prominent title for report cards — dark, title-case, no uppercasing. */
-.card-title-lg {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  color: var(--text-dark);
-}
-
-.card-header-lg {
-  padding: 12px 24px;
-}
-
-.card-body {
-  padding: 16px;
-}
-
-/* Roomier body for report cards. */
-.card-body-lg {
-  padding: 20px 24px;
-}
-
-/* Label/value rows inside a card */
-.result-row {
-  display: flex;
-  align-items: baseline;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.result-row:last-child {
-  border-bottom: none;
-}
-
-.result-row:nth-child(even) {
-  background: var(--bg-primary);
-}
-
-.result-row:hover {
-  background: var(--bg-secondary);
-}
-
-.result-label {
-  width: 140px;
-  flex-shrink: 0;
-  font-weight: 700;
-  color: var(--text-body);
-}
-
-.result-value {
-  flex: 1;
-  color: var(--text-dark);
-  word-break: break-word;
-}
-
-/* ========================================
-   Buttons
-   ======================================== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--transition-fast);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--accent-coral);
-  color: #fff;
-}
-
-.btn-primary:not(:disabled):hover {
-  background: var(--accent-coral-dark);
-  transform: translateY(-1px);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-body);
-  border: 1px solid var(--border-light);
-}
-
-.btn-ghost:not(:disabled):hover {
-  background: var(--bg-tertiary);
-}
-
-.btn-sm {
-  padding: 6px 12px;
-}
-
-/* ========================================
-   Inputs / selects
-   ======================================== */
-.input,
-.select {
-  width: 100%;
-  padding: 10px 14px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--text-body);
-  background: var(--bg-white);
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  transition: all var(--transition-fast);
-}
-
-.input::placeholder {
-  color: var(--text-dim);
-}
-
-.input:focus,
-.select:focus {
-  outline: none;
-  border-color: var(--electric-blue);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-}
-
-.select {
-  appearance: none;
-  padding-right: 36px;
-  cursor: pointer;
-  /* chevron-down, stroke uses currentColor via the muted text token */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 12px;
-}
-
-/* Field label (sits above an input/select) */
-.field-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-}
-
-/* ========================================
-   Badges
-   ======================================== */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-/* Status badges — pill-shaped, paired light bg + solid text */
-.badge-success,
-.badge-warning,
-.badge-error {
-  padding: 3px 10px;
-  border-radius: 12px;
-}
-
-.badge-success {
-  background: var(--success-light);
-  color: var(--success);
-}
-
-.badge-warning {
-  background: var(--warning-light);
-  color: var(--warning);
-}
-
-.badge-error {
-  background: var(--error-light);
-  color: var(--error);
-}
-
-/* ========================================
-   Stat card (KPI / metric tile)
-   ======================================== */
-
-/* Responsive row of stat cards. Fills to four-up on wide screens, wrapping
-   down to one column on narrow ones. Drop any number of .stat-card inside. */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-/* A single metric tile: label on top, a large value with an optional delta,
-   and an optional footnote below. Reuses the .card surface tokens. */
-.stat-card {
-  background: var(--bg-white);
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  box-shadow: var(--shadow-sm);
-  padding: 16px 19px;
-}
-
-.stat-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-/* Value line: the big number sits on the same baseline as its delta. */
-.stat-value-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.stat-value {
-  font-size: 27px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--text-dark);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-
-/* Change indicator. Direction (arrow glyph) lives in the markup; the modifier
-   sets the sentiment color — positive (good) or negative (bad) — so a falling
-   metric can still be "good" (e.g. faster response time). */
-.stat-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  color: var(--text-muted);
-}
-
-.stat-delta-positive {
-  color: var(--success);
-}
-
-.stat-delta-negative {
-  color: var(--error);
-}
-
-.stat-footnote {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* ========================================
-   Provider/Chart framework — shared states
-   ----------------------------------------
-   Loading spinner and inline error shown by any Chart while its provider
-   loads or after a failure (core/ui.js), plus the global date-range selector.
-   ======================================== */
-
-/* Spinner — consumes the @keyframes spin defined in Base. */
-.spinner {
-  width: 24px;
-  height: 24px;
-  margin: 24px auto;
-  border: 3px solid var(--border-light);
-  border-top-color: var(--electric-blue);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-/* Inline load error (same look as the retired .summary-error). */
-.chart-error {
-  margin-top: 1rem;
-  font-size: 0.95rem;
-  color: var(--error);
-}
-
-/* Global date-range selector: a row of preset pill buttons. */
-.range-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.range-btn {
-  padding: 6px 14px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-body);
-  background: var(--bg-white);
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.range-btn:hover {
-  background: var(--bg-tertiary);
-}
-
-.range-btn.active {
-  background: var(--accent-coral);
-  border-color: var(--accent-coral);
-  color: #fff;
-}
-
 /* ========================================
    Bar list (labeled horizontal bars)
    ======================================== */
-
-/* A vertical stack of labeled bars: each row has a leading label, a track with
-   a colored fill, a trailing value, and optional breakdown meta below. */
 .bar-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* Top line of a row: label | track | value, vertically centered on the bar. */
 .bar-main {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 .bar-label {
   flex-shrink: 0;
-  width: 96px;
-  font-size: 12px;
+  width: 120px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.2;
   color: var(--text-body);
 }
 
@@ -779,122 +1058,83 @@ a:hover {
   flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
 }
 
-/* Fill width is set inline (e.g. style="width: 87%"). Color via a modifier.
-   min-width keeps tiny values readable as a rounded nub (e.g. the 3xx dot). */
 .bar-fill {
   height: 100%;
   min-width: 8px;
   border-radius: 999px;
-  background: var(--text-muted);
+  background: var(--slate);
 }
 
-.bar-fill-success { background: var(--success); }
-.bar-fill-info    { background: var(--electric-blue); }
-.bar-fill-warning { background: var(--warning); }
-.bar-fill-warning-strong { background: var(--warning-strong); }
-.bar-fill-error   { background: var(--error); }
-.bar-fill-purple  { background: var(--type-stylesheet); }
+.bar-fill-success { background: var(--green); }
+.bar-fill-info    { background: var(--blue); }
+.bar-fill-warning { background: var(--amber); }
+.bar-fill-warning-strong { background: var(--orange); }
+.bar-fill-error   { background: var(--red); }
+.bar-fill-purple  { background: var(--violet); }
 
 .bar-value {
   flex-shrink: 0;
-  width: 52px;
+  width: 56px;
   text-align: right;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
 }
 
-/* Breakdown items under the bar, left-aligned with the track start. */
 .bar-meta {
-  margin-top: 8px;
-  margin-left: 120px;      /* bar-label width (96) + bar-main gap (24) */
+  margin-top: 6px;
+  margin-left: 140px;      /* bar-label width (120) + bar-main gap (20) */
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 4px 20px;
   font-size: 12px;
-  line-height: 1.2;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Summary line below a bar list (e.g. the response-time average), centered and
-   separated by a full-width divider. --border-light is theme-aware. */
 .bar-footer {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-/* Half-width row for a card meant to sit beside a future sibling. One child
-   lands in the first ~50% track on desktop and goes full width on narrow
-   screens — intrinsic, no media query (matching .stat-grid's approach).
-   auto-fill (not auto-fit) keeps the empty second track from collapsing, so a
-   lone card stays half-width instead of stretching. */
-.chart-pair {
-  display: grid;
-  /* 440px min (not 480) so two tracks plus the 24px gap fit the ~960px content
-     area — otherwise auto-fill collapses to one full-width column. Drops to one
-     column (full width) once the container falls below ~900px. */
-  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
-  gap: 24px;
-  margin-top: 24px;
-}
-
-/* A full-width chart card stacked below a preceding section (stat cards, another
-   chart). Gives the same 24px vertical rhythm as .chart-pair without the grid. */
-.chart-section {
-  margin-top: 24px;
-}
-
 /* ========================================
    Segmented analysis bar (field-analysis cards)
-   ----------------------------------------
-   One proportional, multi-color bar over a legend grid. Reused per field —
-   Title, Description, H1, ... — via the shared segmentBar() builder. Segment
-   widths are set inline by flex-grow, so the bar self-normalizes even when the
-   category percentages overlap and sum past 100%.
    ======================================== */
 .analysis-bar {
   display: flex;
   gap: 4px;
-  height: 28px;
+  height: 24px;
   margin-bottom: 24px;
 }
 
-/* A single colored segment. flex-grow (proportional to the URL count) and the
-   background color are set inline. min-width keeps a tiny slice (e.g. 1%) visible
-   as a rounded nub. */
 .analysis-seg {
   flex-basis: 0;
   min-width: 12px;
   border-radius: 999px;
-  background: var(--text-muted);
+  background: var(--slate);
 }
 
-/* Legend: one column per category, wrapping to fewer columns on narrow screens.
-   150px min keeps a five-category legend (Description) on a single row at normal
-   widths while still wrapping gracefully when the container gets tight. */
 .analysis-legend {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 20px 24px;
 }
 
-/* Dot + label line at the top of each legend column. */
 .analysis-legend-label {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-body);
 }
 
@@ -903,12 +1143,11 @@ a:hover {
   height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: var(--text-muted); /* overridden inline to the segment color */
+  background: var(--slate);
 }
 
-/* The big percentage, colored inline to match its segment. */
 .analysis-legend-pct {
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 26px;
   font-weight: 700;
   line-height: 1.1;
@@ -919,146 +1158,29 @@ a:hover {
 .analysis-legend-count {
   margin-top: 4px;
   font-size: 13px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 /* ========================================
-   Data table
+   Series legend + per-series summary (multi-line charts)
    ======================================== */
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th {
-  text-align: left;
-  padding: 12px 16px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.data-table td {
-  padding: 10px 16px;
-  font-size: 13px;
-  color: var(--text-body);
-  border-bottom: 1px solid var(--border-light);
-  vertical-align: top;
-}
-
-.data-table tbody tr:hover {
-  background: var(--bg-primary);
-}
-
-/* ========================================
-   Charts (billboard.js)
-   ----------------------------------------
-   billboard.js renders SVG with its own .bb-* classes. The vendored
-   billboard.min.css handles layout; these overrides repaint text, axes,
-   grid, and tooltip with the dashboard tokens so charts track both the
-   light and dark themes. Series colors are passed per-chart via
-   `color.pattern` (using --type---success/... values), not set here.
-   ======================================== */
-.bb svg {
-  font-family: var(--font-sans);
-  font-size: 11px;
-}
-
-/* Axis ticks and any in-chart text */
-.bb text,
-.bb .bb-axis .tick text,
-.bb-legend-item text {
-  fill: var(--text-muted);
-}
-
-/* Axis lines and ticks */
-.bb-axis path.domain,
-.bb-axis .tick line {
-  stroke: var(--border-medium);
-}
-
-/* Background grid */
-.bb-grid line {
-  stroke: var(--border-light);
-}
-.bb-grid .bb-xgrid,
-.bb-grid .bb-ygrid {
-  stroke-dasharray: 2 3;
-}
-
-/* Slightly separate arcs/bars from the surface they sit on */
-.bb-chart-arc path,
-.bb-chart-arcs path {
-  stroke: var(--bg-white);
-}
-
-/* Tooltip */
-.bb-tooltip {
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  box-shadow: var(--shadow-md);
-  opacity: 1;
-  font-family: var(--font-sans);
-  overflow: hidden;
-}
-.bb-tooltip th {
-  background: var(--bg-secondary);
-  color: var(--text-muted);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 6px 10px;
-}
-.bb-tooltip td {
-  background: var(--bg-white);
-  color: var(--text-body);
-  border-left: none;
-  padding: 6px 10px;
-  font-variant-numeric: tabular-nums;
-}
-.bb-tooltip td.name .bb-tooltip-name-color {
-  border-radius: 2px;
-}
-
-/* Focus de-emphasis: dim non-hovered arcs/lines a touch */
-.bb-arc.bb-arc-, .bb path.bb-line {
-  shape-rendering: geometricPrecision;
-}
-
-/* ========================================
-   Bot Activity chart (charts/botActivityChart.js)
-   ----------------------------------------
-   A custom top legend (replaces billboard's built-in so we control styling and
-   click-to-toggle) and a per-series summary footer below the spline chart.
-   ======================================== */
-
-/* Clickable legend: a colored dot + label per series. The dot color is set
-   inline from the --bot-* token so it always matches the line. */
 .bot-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
-  padding: 4px 0 16px;
+  gap: 8px 22px;
+  padding: 0 0 16px;
 }
 
 .bot-legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   border: 0;
   padding: 0;
   background: none;
   cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-body);
   transition: opacity var(--transition-fast);
@@ -1071,24 +1193,25 @@ a:hover {
   flex-shrink: 0;
 }
 
-/* Toggled-off series: dim the whole item and gray the dot. */
 .bot-legend-item.is-off {
   opacity: 0.4;
 }
+
 .bot-legend-item.is-off .bot-legend-dot {
   background: var(--text-dim) !important;
 }
 
-/* Summary footer: one tile per series with its total and share of all bots.
-   A left color bar ties each tile back to its line (set inline). */
 .bot-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
   gap: 12px;
   margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
 }
 
 .bot-summary-card {
+  min-width: 0;
   border-left: 3px solid var(--border-medium);
   padding: 2px 0 2px 12px;
 }
@@ -1098,8 +1221,14 @@ a:hover {
   align-items: center;
   gap: 7px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: var(--text-body);
+}
+
+.bot-summary-label span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bot-summary-value-row {
@@ -1113,23 +1242,977 @@ a:hover {
   font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
+  letter-spacing: -0.01em;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
 }
 
 .bot-summary-share {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
+  font-size: 13px;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-/* Neutral "no data" message inside the chart card (distinct from .chart-error). */
-.bot-empty {
-  margin: 0;
-  padding: 32px 0;
-  text-align: center;
-  font-size: 14px;
+.bot-summary-delta {
+  margin-top: 4px;
+}
+
+/* ========================================
+   Data table
+   ======================================== */
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
   color: var(--text-muted);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  padding-left: 24px;
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  padding-right: 24px;
+}
+
+.data-table td {
+  padding: 11px 16px;
+  font-size: 13px;
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: var(--primary-lighter);
+}
+
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.data-table th.num {
+  text-align: right;
+}
+
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable:hover {
+  color: var(--text-dark);
+}
+
+.data-table th.sorted {
+  color: var(--primary-text);
+}
+
+.data-table tr.is-link {
+  cursor: pointer;
+}
+
+.cell-url {
+  max-width: min(400px, 27vw);
+}
+
+.cell-last {
+  max-width: 120px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.url-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.url-link:hover {
+  color: var(--primary-text);
+}
+
+.cell-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.table-toolbar .spacer {
+  flex: 1;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
+}
+
+.pager-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Filter chips (Pages views). */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.chip:hover {
+  background: var(--hover-bg);
+}
+
+.chip.active {
+  color: var(--primary-text);
+  background: var(--active-bg);
+  border-color: color-mix(in srgb, var(--accent-coral) 45%, transparent);
+}
+
+.chip-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip.active .chip-count {
+  color: var(--primary-text);
+}
+
+.num-strong {
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+/* Verdict moves (Indexation > Changed since the previous period). */
+.moves {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.move {
+  display: grid;
+  grid-template-columns: 20px minmax(0, auto) 1fr;
+  grid-template-areas:
+    "dir path pages"
+    ". demand demand";
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.move:hover,
+.move.is-open {
+  background: var(--hover-bg);
+}
+
+.move-dir {
+  grid-area: dir;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.move-worse .move-dir { color: var(--error-text); }
+.move-better .move-dir { color: var(--success-text); }
+
+.move-path {
+  grid-area: path;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.move-arrow {
+  color: var(--text-dim);
+}
+
+.move-pages {
+  grid-area: pages;
+  justify-self: end;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.move-demand {
+  grid-area: demand;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.moves-more {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.move-sample {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px 44px;
+}
+
+.change-pair {
+  display: inline-flex;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Change events (Changes page). */
+.events {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.event {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+
+.event-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.event-field {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.event-kind {
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+.event-pages {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-when {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.event-example {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-light);
+  font-size: 12px;
+}
+
+.event-example .cell-url {
+  max-width: 100%;
+}
+
+/* Stacked horizontal bars (AI Bots > Why each AI came). */
+.stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stack-row {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 64px;
+  grid-template-areas:
+    "label track value"
+    ". meta meta";
+  align-items: center;
+  gap: 4px 16px;
+}
+
+.stack-label {
+  grid-area: label;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+}
+
+.stack-track {
+  grid-area: track;
+}
+
+.stack-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+}
+
+.stack-seg {
+  flex-basis: 0;
+  min-width: 3px;
+  border-radius: 3px;
+}
+
+.stack-value {
+  grid-area: value;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.stack-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Share cells with a background bar (AI Bots > Where each bot reads). */
+.heat {
+  position: relative;
+  min-width: 84px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.heat-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  opacity: 0.45;
+}
+
+.heat-value {
+  position: relative;
+  display: block;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.assistants {
+  display: inline-flex;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.assistants .inline-dot {
+  gap: 5px;
+}
+
+/* Numbered setup steps and code blocks (pages/waiting.js). */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.steps strong {
+  color: var(--text-dark);
+}
+
+.steps-note {
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.code {
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dark);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+}
+
+/* ========================================
+   Change diff (-/+ lines)
+   ======================================== */
+.diff {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.diff-line {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.diff-sign {
+  flex-shrink: 0;
+  width: 10px;
+  font-weight: 700;
+}
+
+.diff-del { color: var(--error-text); }
+.diff-add { color: var(--success-text); }
+
+.diff-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   Page view: status strip, callout, key/value field list
+   ======================================== */
+.page-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.page-strip-item + .page-strip-item::before {
+  content: "·";
+  margin-right: 16px;
+  color: var(--text-dim);
+}
+
+.inline-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.callout {
+  padding: 16px 24px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-white);
+}
+
+.callout-warning {
+  background: var(--warning-light);
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+}
+
+.callout-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.callout-text {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+.callout .kv-row {
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.kv {
+  display: flex;
+  flex-direction: column;
+}
+
+.kv-row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-light);
+}
+
+.kv-row:first-child {
+  border-top: 0;
+}
+
+.kv-key {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.kv-val {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-dark);
+  word-break: break-word;
+}
+
+.kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kv-flag {
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-text);
+}
+
+.kv-row.is-changed {
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: var(--radius);
+  background: var(--primary-lighter);
+}
+
+.kv-row.is-changed.tm-bad { background: var(--error-light); }
+.kv-row.is-changed.tm-good { background: var(--success-light); }
+
+/* ========================================
+   Time machine (pages/page.js)
+   ======================================== */
+.tm {
+  padding: 8px 0 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tm-line {
+  position: relative;
+  height: 52px;
+  margin: 0 14px;
+}
+
+.tm-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 21px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+}
+
+.tm-dot {
+  position: absolute;
+  top: 13px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  padding: 0;
+  border: 3px solid var(--bg-white);
+  border-radius: 50%;
+  background: var(--accent-coral);
+  box-shadow: 0 0 0 1px var(--border-medium);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.tm-dot:hover {
+  transform: scale(1.2);
+}
+
+.tm-dot.tm-first { background: var(--slate); }
+.tm-dot.tm-bad { background: var(--red); }
+.tm-dot.tm-good { background: var(--green); }
+
+.tm-dot.is-selected {
+  box-shadow: 0 0 0 3px var(--accent-coral);
+  transform: scale(1.15);
+}
+
+.tm-dot-label {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tm-dot.label-below .tm-dot-label {
+  top: 15px;
+}
+
+.tm-dot.is-selected .tm-dot-label {
+  color: var(--primary-text);
+}
+
+.tm-seen {
+  position: absolute;
+  top: 44px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-white);
+}
+
+.tm-axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 14px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 12px 14px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tm-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tm-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-coral);
+}
+
+.tm-key.tm-bad { background: var(--red); }
+.tm-key.tm-good { background: var(--green); }
+.tm-key.tm-seen-key { width: 8px; height: 8px; background: var(--slate); }
+
+.tm-detail {
+  padding-top: 20px;
+}
+
+.tm-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.tm-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.tm-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tm-seen-by {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.tm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-body);
+}
+
+.tm-nav {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   Charts (billboard.js)
+   ----------------------------------------
+   Repaint billboard's SVG with the tokens so charts track both themes. Axis
+   lines and tick marks are hidden and the grid is dashed, as in the product.
+   ======================================== */
+.bb svg {
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+.bb text,
+.bb .bb-axis .tick text,
+.bb-legend-item text {
+  fill: var(--text-muted);
+}
+
+.bb-axis path.domain,
+.bb-axis .tick line {
+  stroke: transparent;
+}
+
+.bb-axis-x path.domain {
+  stroke: var(--border-light);
+}
+
+.bb-grid line {
+  stroke: var(--border-light);
+}
+
+.bb-grid .bb-xgrid,
+.bb-grid .bb-ygrid {
+  stroke-dasharray: 3 3;
+}
+
+.bb-chart-arc path,
+.bb-chart-arcs path {
+  stroke: var(--bg-white);
+}
+
+.bb path.bb-line {
+  stroke-width: 2px;
+  shape-rendering: geometricPrecision;
+}
+
+.bb-tooltip-container {
+  z-index: 10;
+}
+
+.bb-tooltip {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  opacity: 1;
+  font-family: var(--font-sans);
+  overflow: hidden;
+  border-collapse: separate;
+}
+
+.bb-tooltip th {
+  background: var(--bg-primary);
+  color: var(--text-dark);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+}
+
+.bb-tooltip td {
+  background: var(--bg-white);
+  color: var(--text-body);
+  border-left: none;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bb-tooltip td.name .bb-tooltip-name-color,
+.bb-tooltip td.name > span {
+  border-radius: 50%;
+}
+
+/* Change markers on time charts: dashed vertical lines labelled with what changed. */
+.bb-xgrid-line line {
+  stroke: var(--text-dim);
+  stroke-dasharray: 4 3;
+}
+
+.bb-xgrid-line text {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bb-xgrid-line.marker-bad line { stroke: var(--red); }
+.bb-xgrid-line.marker-bad text { fill: var(--error-text); }
+.bb-xgrid-line.marker-good line { stroke: var(--green); }
+.bb-xgrid-line.marker-good text { fill: var(--success-text); }
+
+/* ========================================
+   Responsive: below 900px the sidebar becomes a top bar
+   ======================================== */
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: static;
+    width: auto;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 0 8px 8px;
+  }
+
+  .nav-group + .nav-group { margin-top: 0; }
+  .nav-group { display: flex; }
+  .nav-group-label { display: none; }
+  .nav-item { border-left: 0; border-radius: var(--radius); white-space: nowrap; }
+  .sidebar-footer { display: none; }
+
+  .main-content {
+    padding: 20px 16px 40px;
+  }
+
+  .report-header {
+    flex-direction: column;
+  }
+
+  .report-actions {
+    flex-wrap: wrap;
+  }
+
+  /* The header stacks, so the period box sits on the left: open to the right. */
+  .period-pop {
+    left: 0;
+    right: auto;
+  }
+
+  .chart-pair,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .period-pop-body {
+    grid-template-columns: 1fr;
+  }
+
+  .period-presets {
+    padding: 0 0 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-light);
+  }
 }

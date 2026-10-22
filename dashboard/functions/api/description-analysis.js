@@ -13,22 +13,16 @@
 //   too_long    — non-blank description longer than 160 characters (gets truncated)
 // LENGTH counts characters on TEXT; TRIM first so whitespace neither passes the
 // "present" check nor skews the length. Reads the same D1 the worker writes to.
-export async function onRequestGet({ env, request }) {
-  const url = new URL(request.url);
-  const rawFrom = url.searchParams.get("from");
-  const rawTo = url.searchParams.get("to");
-  const from = Number(rawFrom);
-  const to = Number(rawTo);
-  // Reject absent/blank params too — Number(null) and Number("") are 0 (finite).
-  if (rawFrom === null || rawTo === null || rawFrom === "" || rawTo === "" ||
-      !Number.isFinite(from) || !Number.isFinite(to)) {
-    return Response.json({ error: "from/to required (unix ms)" }, { status: 400 });
-  }
+import { NEWEST_SETTLED_SQL } from "../../lib/sql.js";
+import { handle, json, parseRange } from "../../lib/api.js";
+
+export const onRequestGet = handle(async ({ env, request }) => {
+  const { from, to } = parseRange(request);
 
   const row = await env.DB.prepare(
     `WITH latest AS (
        SELECT url, status, meta_description,
-              ROW_NUMBER() OVER (PARTITION BY url ORDER BY ts DESC) AS rn
+              ROW_NUMBER() OVER (PARTITION BY url ORDER BY ${NEWEST_SETTLED_SQL}) AS rn
        FROM crawls
        WHERE ts BETWEEN ?1 AND ?2
      ),
@@ -55,7 +49,7 @@ export async function onRequestGet({ env, request }) {
     .first();
 
   // An empty window yields one row whose aggregates are 0 / NULL — coerce to 0.
-  return Response.json({
+  return json({
     total: row.total ?? 0,
     missing: row.missing ?? 0,
     duplicates: row.duplicates ?? 0,
@@ -63,4 +57,4 @@ export async function onRequestGet({ env, request }) {
     good: row.good ?? 0,
     too_long: row.too_long ?? 0,
   });
-}
+});

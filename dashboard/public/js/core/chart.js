@@ -10,6 +10,7 @@ export class Chart {
     this.el = el; // container this chart fully controls
     this.provider = provider; // Provider instance feeding this chart
     this._seq = 0; // monotonic token guarding against out-of-order loads
+    this.params = {}; // extra query params a page sets (a URL, a filter)
   }
 
   // Orchestration: spinner -> provider.get -> render | error.
@@ -19,7 +20,7 @@ export class Chart {
     const seq = ++this._seq;
     this.showLoading();
     try {
-      const data = await this.provider.get(from, to);
+      const data = await this.provider.get(from, to, this.params);
       if (seq !== this._seq) return; // a newer load superseded this one
       this.render(data);
     } catch (err) {

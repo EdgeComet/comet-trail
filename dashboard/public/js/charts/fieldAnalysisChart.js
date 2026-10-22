@@ -94,10 +94,10 @@ export class FieldAnalysisChart extends Chart {
 // Colors match the reference (red, orange, amber, green). Fed by
 // TitleAnalysisProvider (/api/title-analysis).
 const TITLE_SEGMENTS = [
-  { key: "duplicates", label: "Duplicates",  token: "--error" },
-  { key: "missing",    label: "Missing",     token: "--warning-strong" },
-  { key: "short",      label: "Short (<30)", token: "--warning" },
-  { key: "good",       label: "Good (30+)",  token: "--success" },
+  { key: "duplicates", label: "Duplicates",  token: "--red" },
+  { key: "missing",    label: "Missing",     token: "--orange" },
+  { key: "short",      label: "Short (<30)", token: "--amber" },
+  { key: "good",       label: "Good (30+)",  token: "--green" },
 ];
 
 export class TitleAnalysisChart extends FieldAnalysisChart {
@@ -111,11 +111,11 @@ export class TitleAnalysisChart extends FieldAnalysisChart {
 // overlapping Duplicates overlay. Colors match the reference (red, orange, amber,
 // lime, green). Fed by DescriptionAnalysisProvider (/api/description-analysis).
 const DESCRIPTION_SEGMENTS = [
-  { key: "duplicates", label: "Duplicates",      token: "--error" },
-  { key: "missing",    label: "Missing",         token: "--warning-strong" },
-  { key: "short",      label: "Short (<70)",     token: "--warning" },
+  { key: "duplicates", label: "Duplicates",      token: "--red" },
+  { key: "missing",    label: "Missing",         token: "--orange" },
+  { key: "short",      label: "Short (<70)",     token: "--amber" },
   { key: "too_long",   label: "Too Long (>160)", token: "--lime" },
-  { key: "good",       label: "Good (70-160)",   token: "--success" },
+  { key: "good",       label: "Good (70-160)",   token: "--green" },
 ];
 
 export class DescriptionAnalysisChart extends FieldAnalysisChart {

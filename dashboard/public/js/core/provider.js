@@ -8,6 +8,8 @@
 // The cache only ever hits because the date range is quantized to the same
 // bucket as TTL_MS upstream (see core/dateRange.js) — without that, from/to
 // would drift every millisecond and every key would be unique.
+import { pickGranularity } from "./bucketing.js";
+
 const TTL_MS = 5 * 60 * 1000; // 5 minutes — equal to the date-range bucket.
 
 export class Provider {
@@ -15,10 +17,12 @@ export class Provider {
     this.name = name; // cache-key prefix, e.g. 'metrics'
     this.endpoint = endpoint; // e.g. '/api/metrics'
     this._cache = new Map(); // key -> { data, expiresAt }; dies on page reload
+    this._pending = new Map(); // key -> in-flight promise, so cards sharing a provider fetch once
   }
 
-  _key(from, to) {
-    return `${this.name}|${from}|${to}`;
+  _key(from, to, extra = {}) {
+    const tail = Object.keys(extra).length ? `|${new URLSearchParams(extra)}` : "";
+    return `${this.name}|${from}|${to}${tail}`;
   }
 
   // Extra query params beyond from/to. Base sends none; subclasses override to
@@ -29,17 +33,34 @@ export class Provider {
   }
 
   // Returns the parsed JSON for this range. Cache hit (unexpired) => no network.
-  async get(from, to) {
+  // `extra` carries per-call params beyond the range (a search term, a URL) and
+  // is part of the cache key.
+  async get(from, to, extra = {}) {
     const now = Date.now();
-    const key = this._key(from, to);
+    const key = this._key(from, to, extra);
 
     const hit = this._cache.get(key);
     if (hit && hit.expiresAt > now) return hit.data;
+    if (this._pending.has(key)) return this._pending.get(key);
 
-    const query = new URLSearchParams({ from, to, ...this._params(from, to) });
+    const promise = this._fetch(key, from, to, extra, now);
+    this._pending.set(key, promise);
+    try {
+      return await promise;
+    } finally {
+      this._pending.delete(key);
+    }
+  }
+
+  async _fetch(key, from, to, extra, now) {
+    const query = new URLSearchParams({ from, to, ...this._params(from, to), ...extra });
     const url = `${this.endpoint}?${query}`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // The API answers errors as { error }; show that rather than a bare code.
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error ?? `HTTP ${res.status}`);
+    }
     const data = await res.json();
 
     // Only successes are cached, so a failed load retries cleanly next time.
@@ -54,4 +75,20 @@ export class Provider {
       if (entry.expiresAt <= now) this._cache.delete(key);
     }
   }
+}
+
+// A provider for time series: adds the bucket size (hour or day) picked from
+// the range width. The cache key needs no change, since the granularity is
+// fully determined by (from, to).
+export class BucketedProvider extends Provider {
+  _params(from, to) {
+    return { bucket: pickGranularity({ from, to }) };
+  }
+}
+
+// A view onto part of another provider's response, for a card that shows one
+// slice of it. Shares the parent's cache and in-flight request, so several
+// cards cost one fetch.
+export function derive(parent, pick) {
+  return { get: async (from, to, extra) => pick(await parent.get(from, to, extra)) };
 }

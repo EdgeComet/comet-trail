@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Evergreen crawl proof of concept. Monorepo: worker/ collects bot crawls into D1; dashboard/ reads them.",
+  "description": "Evergreen crawl for your own site. Monorepo: worker/ records search and AI bot visits with the page each received into D1; dashboard/ reports on them.",
   "workspaces": [
     "worker",
     "dashboard"

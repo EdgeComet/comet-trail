@@ -10,17 +10,10 @@
 // avg_ms intentionally duplicates metrics.js's avg_response_ms — the footer needs
 // it in this payload to avoid a second round-trip, and the endpoints cache apart.
 // Reads the same D1 database the tracking worker writes to (binding: DB).
-export async function onRequestGet({ env, request }) {
-  const url = new URL(request.url);
-  const rawFrom = url.searchParams.get("from");
-  const rawTo = url.searchParams.get("to");
-  const from = Number(rawFrom);
-  const to = Number(rawTo);
-  // Reject absent/blank params too — Number(null) and Number("") are 0 (finite).
-  if (rawFrom === null || rawTo === null || rawFrom === "" || rawTo === "" ||
-      !Number.isFinite(from) || !Number.isFinite(to)) {
-    return Response.json({ error: "from/to required (unix ms)" }, { status: 400 });
-  }
+import { handle, json, parseRange } from "../../lib/api.js";
+
+export const onRequestGet = handle(async ({ env, request }) => {
+  const { from, to } = parseRange(request);
 
   const row = await env.DB.prepare(
     `SELECT
@@ -38,7 +31,7 @@ export async function onRequestGet({ env, request }) {
     .first();
 
   // An empty range yields one row whose aggregates are NULL — coerce to 0.
-  return Response.json({
+  return json({
     buckets: [
       { key: "<0.5s",  c: row.b0 ?? 0 },
       { key: "0.5-1s", c: row.b1 ?? 0 },
@@ -49,4 +42,4 @@ export async function onRequestGet({ env, request }) {
     avg_ms: row.avg_ms ?? 0,
     total: row.total ?? 0,
   });
-}
+});

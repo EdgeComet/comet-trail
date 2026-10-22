@@ -38,9 +38,31 @@ export function bucketEdges({ from, to }, granularity) {
   return edges;
 }
 
-// d3/billboard time-format string for the x-axis ticks and tooltip. Hourly
-// buckets need the time-of-day, otherwise every label collapses to the same day
-// and the tooltip can't tell 02:00 from 20:00.
-export function xTickFormat(granularity) {
-  return granularity === "hour" ? "%b %d %H:%M" : "%b %d";
+// Tick labels and tooltip titles are UTC, like the buckets.
+const DAY_FMT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const DATE_FMT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+const TIME_FMT = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+
+// Explicit x-axis ticks for a bucket timeline: at most about 10, on round
+// steps (every 1, 2, 3, 6, 12 or 24 hours; every 1, 2, 3, 7, 14 or 30 days)
+// aligned to UTC, so labels read "15:00" or "Oct 4" and never "17:25". Hourly
+// ticks that fall on midnight show the date. Billboard's own `count` spreads
+// ticks evenly in time instead, which lands between buckets.
+export function xAxisTicks(edges, granularity) {
+  const ms = BUCKET_MS[granularity];
+  const steps = granularity === "hour" ? [1, 2, 3, 6, 12, 24, 48] : [1, 2, 3, 7, 14, 30];
+  const step = steps.find((s) => edges.length / s <= 10) ?? steps[steps.length - 1];
+  const values = edges.filter((t) => Math.floor(t / ms) % step === 0);
+  const format =
+    granularity === "hour"
+      ? (d) => (new Date(d).getUTCHours() === 0 ? DAY_FMT.format(new Date(d)) : TIME_FMT.format(new Date(d)))
+      : (d) => DAY_FMT.format(new Date(d));
+  return { values, format, outer: false };
+}
+
+// Tooltip title for a bucket: the full date, plus the hour for hourly buckets.
+export function tooltipTitle(granularity) {
+  return granularity === "hour"
+    ? (d) => `${DATE_FMT.format(new Date(d))}, ${TIME_FMT.format(new Date(d))} UTC`
+    : (d) => DATE_FMT.format(new Date(d));
 }

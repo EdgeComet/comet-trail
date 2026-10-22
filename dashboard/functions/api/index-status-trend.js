@@ -15,27 +15,20 @@
 // division into float division and corrupting the bucket keys (same hazard noted
 // in api/bot-activity.js). It must match BUCKET_MS.day in public/js/core/bucketing.js.
 // Reads the same D1 database the tracking worker writes to (binding: DB).
+import { NEWEST_SETTLED_SQL } from "../../lib/sql.js";
+import { handle, json, parseRange } from "../../lib/api.js";
+
 const DAY_MS = 86400000;
 
-export async function onRequestGet({ env, request }) {
-  const url = new URL(request.url);
-  const rawFrom = url.searchParams.get("from");
-  const rawTo = url.searchParams.get("to");
-  const from = Number(rawFrom);
-  const to = Number(rawTo);
-
-  // Reject absent/blank params too — Number(null) and Number("") are 0 (finite).
-  if (rawFrom === null || rawTo === null || rawFrom === "" || rawTo === "" ||
-      !Number.isFinite(from) || !Number.isFinite(to)) {
-    return Response.json({ error: "from/to required (unix ms)" }, { status: 400 });
-  }
+export const onRequestGet = handle(async ({ env, request }) => {
+  const { from, to } = parseRange(request);
 
   const { results } = await env.DB.prepare(
     `WITH latest AS (
        SELECT (ts / ${DAY_MS}) * ${DAY_MS} AS t,
               index_status,
               ROW_NUMBER() OVER (
-                PARTITION BY url, ts / ${DAY_MS} ORDER BY ts DESC
+                PARTITION BY url, ts / ${DAY_MS} ORDER BY ${NEWEST_SETTLED_SQL}
               ) AS rn
          FROM crawls
         WHERE ts BETWEEN ?1 AND ?2
@@ -49,5 +42,5 @@ export async function onRequestGet({ env, request }) {
     .bind(from, to)
     .all();
 
-  return Response.json({ granularity: "day", rows: results ?? [] });
-}
+  return json({ granularity: "day", rows: results ?? [] });
+});

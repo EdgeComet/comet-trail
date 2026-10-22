@@ -81,6 +81,6 @@ CF_ACCESS_AUD = "<the AUD tag you copied>"
 npm run deploy:dashboard
 ```
 
-> Deploy **after** completing steps 1–5. The middleware fails closed: deploying it before the Access app exists and the `[vars]` are filled will return 403 to everyone, including you.
+> Deploy **after** completing steps 1–5. Once the `[vars]` hold real values the middleware enforces, so deploying them before the Access app exists locks everyone out, including you.
 
-**Verify:** `curl -i https://comet-trail-dashboard.pages.dev/api/metrics` should return **403** (raw Pages URL has no token), while opening `https://dashboard.example.com/` redirects you to the Access login and, after entering the emailed code, loads the page.
+**Verify:** `curl -i https://comet-trail-dashboard.pages.dev/api/site` should return a **302** redirect to `https://<team>.cloudflareaccess.com/cdn-cgi/access/login/...` (the raw Pages URL has no token), while opening `https://dashboard.example.com/` redirects you to the Access login and, after entering the emailed code, loads the page.

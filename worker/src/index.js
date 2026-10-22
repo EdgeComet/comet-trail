@@ -1,50 +1,17 @@
 // CometTrail: evergreen crawl worker.
 //
-// When a bot in BOTS hits the site, capture the HTML response, extract a few
+// When a bot from shared/bots.js hits the site, capture the HTML response, extract a few
 // SEO fields, and append a row to D1. The worker is a pure passthrough —
 // it never modifies what the bot sees, and DB work is deferred to ctx.waitUntil
 // so the bot's response is not delayed.
 
-// Order matters: more-specific patterns first, so e.g. Googlebot-Image is
-// matched before the catch-all /Googlebot/.
-const BOTS = [
-  // Google variants
-  { name: 'Googlebot-Image',       pattern: /Googlebot-Image/i },
-  { name: 'Googlebot-Video',       pattern: /Googlebot-Video/i },
-  { name: 'Googlebot-News',        pattern: /Googlebot-News/i },
-  { name: 'AdsBot-Google-Mobile',  pattern: /AdsBot-Google-Mobile/i },
-  { name: 'AdsBot-Google',         pattern: /AdsBot-Google/i },
-  { name: 'GoogleOther',           pattern: /GoogleOther/i },
-  { name: 'Google-Extended',       pattern: /Google-Extended/i },
-  { name: 'Googlebot-Smartphone',  pattern: /Mobile[^)]*Googlebot|Googlebot[^)]*Mobile/i },
-  { name: 'Googlebot',             pattern: /Googlebot/i },
-
-  // Search engines
-  { name: 'Bingbot',               pattern: /Bingbot/i },
-  { name: 'YandexBot',             pattern: /YandexBot/i },
-  { name: 'DuckDuckBot',           pattern: /DuckDuckBot/i },
-  { name: 'Applebot',              pattern: /Applebot/i },
-
-  // AI / answer engines
-  { name: 'GPTBot',                pattern: /GPTBot/i },
-  { name: 'OAI-SearchBot',         pattern: /OAI-SearchBot/i },
-  { name: 'ChatGPT-User',          pattern: /ChatGPT-User/i },
-  { name: 'ClaudeBot',             pattern: /ClaudeBot/i },
-  { name: 'Claude-Web',            pattern: /Claude-Web/i },
-  { name: 'Claude-User',           pattern: /Claude-User/i },
-  { name: 'PerplexityBot',         pattern: /PerplexityBot/i },
-  // edit this list to add or remove bots
-];
-
-function detectBot(ua) {
-  for (const b of BOTS) if (b.pattern.test(ua)) return b.name;
-  return null;
-}
+import { detectBot } from '../../shared/bots.js';
+import { parseDirectives, computeIndexStatus } from '../../shared/seo.js';
 
 export default {
   async fetch(request, env, ctx) {
     const ua = request.headers.get('user-agent') || '';
-    const botName = detectBot(ua);
+    const botName = detectBot(ua)?.name ?? null;
 
     // Not a tracked bot → straight passthrough, zero overhead. redirect: 'manual'
     // so a site redirect reaches the caller instead of being followed here.
@@ -208,39 +175,6 @@ async function extractAndStore({ env, url, finalUrl, status, responseTimeMs, bot
   });
 
   await insertRow(env, { url, status, responseTimeMs, botName, ...data });
-}
-
-// Splits a meta robots/googlebot content string into normalized directives:
-// comma-separated, trimmed, lowercased, empties dropped. Returns [] for
-// null/undefined/empty input (e.g. when no such meta tag was present).
-function parseDirectives(content) {
-  if (!content) return [];
-  return content
-    .split(',')
-    .map((d) => d.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-// Computes the page's indexation status, porting engine dom.go IndexationStatus:
-//   non_200        - status is not 200
-//   blocked_by_meta- meta robots/googlebot carries noindex|none (googlebot wins)
-//   non_canonical  - canonical resolves to a different URL than finalUrl
-//   indexable      - none of the above
-// Canonical uses an EXACT .href comparison, so trailing-slash, query-param, or
-// fragment differences read as non_canonical by design.
-function computeIndexStatus({ status, metaRobots, metaGooglebot, canonical, finalUrl }) {
-  if (status !== 200) return 'non_200';
-  const sel = metaGooglebot.length ? metaGooglebot : metaRobots; // googlebot precedence (engine)
-  if (sel.includes('noindex') || sel.includes('none')) return 'blocked_by_meta';
-  const c = canonical && canonical.trim();
-  if (c) {
-    try {
-      if (new URL(c, finalUrl).href !== finalUrl) return 'non_canonical';
-    } catch {
-      // Malformed canonical: fail safe, don't flag.
-    }
-  }
-  return 'indexable';
 }
 
 async function insertRow(env, row) {

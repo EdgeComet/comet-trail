@@ -1,6 +1,6 @@
 import { Chart } from "../core/chart.js";
 import { cssVar } from "../core/ui.js";
-import { bucketEdges, xTickFormat } from "../core/bucketing.js";
+import { bucketEdges, xAxisTicks, tooltipTitle } from "../core/bucketing.js";
 
 // Index Status Trend — a 100% stacked daily bar chart splitting each day's pages
 // into the four index_status outcomes, with a clickable top legend. Fed by
@@ -13,10 +13,10 @@ import { bucketEdges, xTickFormat } from "../core/bucketing.js";
 // `key` is the raw index_status value the backend emits; `label` is what the UI
 // shows. index_status is never NULL, so the four always partition each bar to 100%.
 const SERIES = [
-  { key: "indexable",       label: "Indexable",     token: "--success" },
-  { key: "non_200",         label: "Non-200",       token: "--warning" },
-  { key: "blocked_by_meta", label: "Blocked",       token: "--error" },
-  { key: "non_canonical",   label: "Non-canonical", token: "--type-stylesheet" },
+  { key: "indexable",       label: "Indexable",     token: "--idx-indexable" },
+  { key: "non_200",         label: "Non-200",       token: "--idx-4xx" },
+  { key: "blocked_by_meta", label: "Blocked",       token: "--idx-noindex" },
+  { key: "non_canonical",   label: "Non-canonical", token: "--idx-canonical" },
 ];
 
 const TITLE = "Index Status Trend";
@@ -151,11 +151,12 @@ export class IndexStatusTrendChart extends Chart {
         x: {
           type: "timeseries",
           localtime: false,
-          tick: { format: xTickFormat(granularity), count: 6, fit: true },
+          tick: xAxisTicks(edges, granularity),
         },
         y: { tick: { format: (v) => `${v}%` }, min: 0, padding: { bottom: 0 } },
       },
       legend: { show: false },
+      tooltip: { format: { title: tooltipTitle(granularity) } },
       size: { height: 300 },
     });
 
