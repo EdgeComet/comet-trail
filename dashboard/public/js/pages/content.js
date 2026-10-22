@@ -488,33 +488,21 @@ class CaptionChart extends Chart {
 export function renderContent(outlet, params) {
   const tag = Object.hasOwn(TABS, params.get("tab") ?? "") ? params.get("tab") : "title";
   const tab = TABS[tag];
+  const caption = h("span");
   outlet.append(
     reportHeader({
       title: "Content",
       subtitle: "Titles, meta descriptions and H1s of the indexable pages bots fetched, one verdict per page.",
+      strip: {
+        label: "Tag",
+        tabs: Object.entries(TABS).map(([key, t]) => ({
+          label: t.label,
+          href: key === "title" ? "/content" : `/content?tab=${key}`,
+          active: key === tag,
+        })),
+        trailing: caption,
+      },
     })
-  );
-
-  const caption = h("span", { className: "tab-bar-caption" });
-  outlet.append(
-    h(
-      "div",
-      { className: "tab-bar" },
-      h(
-        "nav",
-        { className: "tabs", "aria-label": "Tag" },
-        Object.entries(TABS).map(([key, t]) =>
-          h("a", {
-            className: key === tag ? "tab active" : "tab",
-            href: key === "title" ? "/content" : `/content?tab=${key}`,
-            "data-route": "",
-            "aria-current": key === tag ? "page" : null,
-            text: t.label,
-          })
-        )
-      ),
-      caption
-    )
   );
 
   const strip = h("div");

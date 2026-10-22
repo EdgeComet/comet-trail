@@ -30,9 +30,21 @@ function initThemeToggle() {
   });
 }
 
-// Sidebar icons, from the data-icon attribute on each link.
-function initNavIcons() {
-  document.querySelectorAll(".nav-item[data-icon]").forEach((a) => a.prepend(icon(a.dataset.icon)));
+// Sidebar: each group row gets its icon (data-icon) and a chevron, and folds
+// its reports away on click, as in the EdgeComet sidebar.
+function initSidebar() {
+  document.querySelectorAll(".nav-group-toggle").forEach((btn) => {
+    const chevron = icon("chevronDown");
+    chevron.classList.add("nav-chevron");
+    btn.prepend(icon(btn.dataset.icon));
+    btn.append(chevron);
+    const sub = document.getElementById(btn.getAttribute("aria-controls"));
+    btn.addEventListener("click", () => {
+      const open = btn.getAttribute("aria-expanded") !== "true";
+      btn.setAttribute("aria-expanded", String(open));
+      sub.hidden = !open;
+    });
+  });
 }
 
 // Which site is this, and has any bot visit arrived yet?
@@ -61,7 +73,7 @@ function showSite(site) {
 }
 
 initThemeToggle();
-initNavIcons();
+initSidebar();
 
 // The period lives in the address bar (?period=7d, ?period=2026-09-01_2026-09-30),
 // so a reload or a shared link keeps it. The default (30 days) leaves no param.

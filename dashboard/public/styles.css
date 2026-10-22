@@ -37,6 +37,7 @@
   /* Text */
   --text-dark: #111827;
   --text-body: #374151;
+  --text-secondary: #4b5563; /* labels, nav rows, card subtitles, table heads */
   --text-muted: #686f7a;
   --text-dim: #9ca3af;
 
@@ -95,6 +96,7 @@
   /* Borders */
   --border-light: #e5e7eb;
   --border-medium: #d1d5db;
+  --border-row: #f3f4f6;      /* between table rows */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -116,7 +118,12 @@
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
 
-  --sidebar-width: 232px;
+  /* Layout, as in the EdgeComet dashboard */
+  --sidebar-width: 224px;
+  --header-height: 60px;      /* the report header and the sidebar brand row */
+  --strip-height: 40px;       /* tabs / back link under the header */
+  --control-height: 32px;     /* header controls: period, actions */
+  --content-pad: 24px;
 
   color-scheme: light;
 }
@@ -137,6 +144,7 @@
 
   --text-dark: #f3f4f6;
   --text-body: #d1d5db;
+  --text-secondary: #9ca3af;
   --text-muted: #9aa3b2;
   --text-dim: #7c8597;
 
@@ -153,6 +161,7 @@
 
   --border-light: #3a4459;
   --border-medium: #46516a;
+  --border-row: #313a4e;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
@@ -242,10 +251,12 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 64px;
-  padding: 0 18px;
+  flex-shrink: 0;
+  height: var(--header-height);
+  padding: 0 12px;
   color: var(--text-dark);
   text-decoration: none;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .sidebar-brand:hover {
@@ -279,32 +290,27 @@ button {
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0 16px;
+  padding: 8px 0;
 }
 
-.nav-group + .nav-group {
-  margin-top: 14px;
-}
-
-.nav-group-label {
-  padding: 6px 18px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
+/* A group row (icon, label, chevron) and its reports under it, indented to the
+   group label's left edge: 12px inset + 18px icon + 12px gap = 42px. */
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 38px;
-  padding: 0 18px;
+  width: 100%;
+  min-height: 38px;
+  padding: 4px 12px;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-body);
-  border-left: 3px solid transparent;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
@@ -312,7 +318,6 @@ button {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  color: var(--text-muted);
 }
 
 .nav-item:hover {
@@ -322,19 +327,31 @@ button {
 
 .nav-item.active {
   background: var(--active-bg);
-  color: var(--primary-text);
-  border-left-color: var(--accent-coral);
+  color: var(--accent-coral);
 }
 
-.nav-item.active svg {
-  color: var(--accent-coral);
+.nav-item .nav-chevron {
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  transition: transform var(--transition-fast);
+}
+
+.nav-group-toggle[aria-expanded="true"] .nav-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-sub-item {
+  min-height: 34px;
+  padding-left: 42px;
+  font-size: 12px;
 }
 
 .sidebar-footer {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 18px 16px;
+  padding: 8px 12px;
   border-top: 1px solid var(--border-light);
 }
 
@@ -350,8 +367,8 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
-  color: var(--text-body);
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .theme-toggle {
@@ -383,42 +400,35 @@ button {
 .main-content {
   flex: 1;
   min-width: 0;
-  padding: 28px 40px 56px;
-}
-
-.view {
-  max-width: 1440px;
-  margin: 0 auto;
+  padding: 0 var(--content-pad) var(--content-pad);
 }
 
 /* ========================================
-   Report header: title + period, then tabs
+   Report header: a 60px bar edge to edge (title, then actions and the
+   period), an optional 40px strip (back link, tabs, caption), a lead line.
    ======================================== */
 .report-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 20px;
-}
-
-.report-heading {
-  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-height: var(--header-height);
+  margin: 0 calc(-1 * var(--content-pad)) var(--content-pad);
+  padding: 8px var(--content-pad);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .report-title {
+  min-width: 0;
   margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  overflow: hidden;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text-dark);
-}
-
-.report-subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: var(--text-muted);
 }
 
 .report-actions {
@@ -428,23 +438,87 @@ button {
   flex-shrink: 0;
 }
 
+.report-actions .btn {
+  height: var(--control-height);
+}
+
+/* Pulled up against the header's own divider, so the two rows read as one. */
+.report-strip {
+  display: flex;
+  align-items: stretch;
+  min-height: var(--strip-height);
+  margin: calc(-1 * var(--content-pad)) calc(-1 * var(--content-pad)) var(--content-pad);
+  padding: 0 var(--content-pad);
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* Leaving the view is a different move from switching tabs: a hairline
+   divides the back link from what follows. */
+.strip-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-right: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border-light);
+}
+
+.strip-back svg {
+  width: 14px;
+  height: 14px;
+}
+
+.strip-back:hover {
+  color: var(--accent-coral);
+}
+
+.strip-title {
+  align-self: center;
+  min-width: 0;
+  padding-left: 16px;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.strip-trailing {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 16px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.report-lead {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
 /* Period: one bordered box, preset cells split by hairlines, then the dates. */
 .period {
   display: inline-flex;
   align-items: stretch;
-  height: 36px;
+  height: var(--control-height);
   background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
 .period-btn {
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
   background: transparent;
   border: 0;
   border-right: 1px solid var(--border-light);
@@ -467,9 +541,10 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px 0 14px;
-  font-size: 13px;
-  color: var(--text-body);
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
   white-space: nowrap;
   background: transparent;
   border: 0;
@@ -533,7 +608,7 @@ button {
   gap: 8px;
   height: 36px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   text-align: left;
   color: var(--text-body);
@@ -566,9 +641,9 @@ button {
 }
 
 .period-custom-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: var(--text-secondary);
 }
 
 .period-fields {
@@ -587,9 +662,9 @@ button {
 }
 
 .period-field .input {
-  height: 34px;
+  height: var(--control-height);
   padding: 0 8px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .period-error {
@@ -613,62 +688,59 @@ button {
   border-top: 1px solid var(--border-light);
 }
 
-/* "Back to the list" link above a detail page's title. */
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.back-link svg {
-  width: 14px;
-  height: 14px;
-}
-
-.back-link:hover {
-  color: var(--text-dark);
-}
-
-/* Underline tabs (also used as a section switcher inside a page). */
+/* Tabs in the report strip. The selected tab takes the selected sidebar row's
+   fill and label, plus an underline on the strip's divider. */
 .tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-light);
 }
 
 .tab {
   position: relative;
-  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-bottom: -1px;
+  padding: 8px 20px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-muted);
+  white-space: nowrap;
+  color: var(--text-secondary);
   background: transparent;
   border: 0;
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.tab:hover {
-  color: var(--text-dark);
-}
-
-.tab.active {
-  color: var(--primary-text);
-  background: var(--active-bg);
-}
-
-.tab.active::after {
+.tab::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -1px;
+  bottom: 0;
   height: 3px;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+
+.tab:hover:not(.active) {
+  color: var(--text-dark);
+}
+
+.tab:hover:not(.active)::after {
+  background: color-mix(in srgb, var(--text-secondary) 40%, transparent);
+}
+
+.tab.active {
+  color: var(--accent-coral);
+  background: var(--active-bg);
+}
+
+.tab.active::after {
   background: var(--accent-coral-dark);
+}
+
+.tab:focus-visible {
+  outline-offset: -2px;
 }
 
 /* ========================================
@@ -679,7 +751,6 @@ button {
   background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -687,46 +758,43 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: 8px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-light);
 }
 
 .card-heading {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  flex-grow: 1;
+  gap: 8px;
   min-width: 0;
 }
 
-.card-title,
-.card-title-lg {
+.card-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
   color: var(--text-dark);
 }
 
 .card-subtitle {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .card-link {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
+  color: var(--accent-coral);
 }
 
-.card-header-lg {
-  padding: 16px 24px;
-}
-
-.card-body,
-.card-body-lg {
-  padding: 20px 24px;
+.card-body {
+  padding: 16px;
 }
 
 /* For tables that draw their own edges. */
@@ -735,9 +803,9 @@ button {
 }
 
 .card-footer {
-  padding: 12px 24px;
-  font-size: 13px;
-  color: var(--text-muted);
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
   border-top: 1px solid var(--border-light);
 }
 
@@ -752,13 +820,25 @@ button {
   margin-top: 24px;
 }
 
-/* Two cards side by side, one column on narrow screens. */
+/* Two cards side by side, one column on narrow screens. A pair holding
+   tables needs wider halves before it sits side by side. */
 .chart-pair,
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 24px;
   margin-top: 24px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr));
+}
+
+/* A wide table scrolls inside its card instead of widening the column. */
+.chart-pair > *,
+.grid-2 > *,
+.grid-2-1 > * {
+  min-width: 0;
 }
 
 .grid-2-1 {
@@ -778,52 +858,63 @@ button {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
+  gap: 16px;
 }
 
 .stat-card {
   display: flex;
   flex-direction: column;
-  padding: 20px 24px;
+  gap: 12px;
+  padding: 16px;
   background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+}
+
+/* In a grid, each card's label, value and footnote take the grid's own rows,
+   so a label that wraps moves every value in its row down with it. */
+.stat-grid > .stat-card {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+}
+
+.stat-grid > .stat-card > .stat-value-row {
+  align-self: start;
 }
 
 .stat-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .stat-label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-secondary);
 }
 
 .stat-link {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
+  color: var(--accent-coral);
 }
 
 .stat-value-row {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px 10px;
-  margin-top: 12px;
+  gap: 4px 8px;
 }
 
 .stat-value {
   font-size: 32px;
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
 }
@@ -834,8 +925,8 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--text-muted);
@@ -845,9 +936,8 @@ button {
 .stat-delta-negative { color: var(--error); }
 
 .stat-footnote {
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 /* ========================================
@@ -890,9 +980,9 @@ button {
   justify-content: center;
   gap: 8px;
   height: 36px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
   border: 1px solid transparent;
   border-radius: var(--radius);
   cursor: pointer;
@@ -923,7 +1013,7 @@ button {
 
 .btn-ghost {
   background: var(--bg-white);
-  color: var(--text-body);
+  color: var(--text-dark);
   border-color: var(--border-light);
 }
 
@@ -933,14 +1023,14 @@ button {
 }
 
 .btn-sm {
-  height: 30px;
-  padding: 0 10px;
+  height: 28px;
+  padding: 0 12px;
   font-size: 12px;
 }
 
 .input {
   width: 100%;
-  height: 36px;
+  height: var(--control-height);
   padding: 0 12px;
   font-family: inherit;
   font-size: 14px;
@@ -1036,29 +1126,27 @@ button {
 .bar-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .bar-main {
-  display: flex;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 50px;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
 .bar-label {
-  flex-shrink: 0;
-  width: 120px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.2;
-  color: var(--text-body);
+  line-height: 1.5;
+  color: var(--text-dark);
 }
 
 .bar-track {
-  flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .bar-fill {
@@ -1076,23 +1164,21 @@ button {
 .bar-fill-purple  { background: var(--violet); }
 
 .bar-value {
-  flex-shrink: 0;
-  width: 56px;
   text-align: right;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
 }
 
 .bar-meta {
-  margin-top: 6px;
-  margin-left: 140px;      /* bar-label width (120) + bar-main gap (20) */
+  margin-top: 4px;
+  margin-left: 132px;      /* bar-label column (120) + bar-main gap (12) */
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 20px;
+  gap: 4px 16px;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1101,8 +1187,9 @@ button {
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
   text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dark);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1126,21 +1213,22 @@ button {
 .analysis-legend {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px 16px;
+  gap: 16px;
 }
 
 .analysis-legend-label {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-secondary);
 }
 
 .analysis-legend-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;          /* centred on the label's first 18px line */
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--slate);
@@ -1148,20 +1236,19 @@ button {
 
 .analysis-legend-pct {
   display: block;
-  margin-top: 8px;
-  font-size: 26px;
+  margin-top: 4px;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+  line-height: 1.25;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
 }
 
 .analysis-legend-count {
   display: block;
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--text-muted);
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1208,35 +1295,12 @@ button {
 
 /* The pages behind a figure, opened under it. Bleeds to the card edges. */
 .drill {
-  margin: 24px -24px -20px;
+  margin: 16px -16px -16px;
   border-top: 1px solid var(--border-light);
 }
 
 .drill > .empty-note {
   padding: 20px 0;
-}
-
-/* Tabs with a caption on the right (Content). */
-.tab-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 4px 16px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.tab-bar .tabs {
-  margin-bottom: 0;
-  border-bottom: 0;
-}
-
-.tab-bar-caption {
-  padding-bottom: 10px;
-  font-size: 13px;
-  color: var(--text-dark);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Long text in a table cell: at most two lines, full text on hover. */
@@ -1341,8 +1405,8 @@ button {
 .bot-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 22px;
-  padding: 0 0 16px;
+  gap: 8px 16px;
+  padding: 0 0 12px;
 }
 
 .bot-legend-item {
@@ -1353,9 +1417,9 @@ button {
   padding: 0;
   background: none;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-body);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
   transition: opacity var(--transition-fast);
 }
 
@@ -1377,25 +1441,33 @@ button {
 .bot-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 20px;
+  gap: 12px 16px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-light);
 }
 
 .bot-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
   border-left: 3px solid var(--border-medium);
-  padding: 2px 0 2px 12px;
+  padding-left: 12px;
 }
 
 .bot-summary-label {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-secondary);
+}
+
+.bot-summary-label .bot-legend-dot {
+  width: 8px;
+  height: 8px;
 }
 
 .bot-summary-label span:last-child {
@@ -1408,26 +1480,20 @@ button {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 6px;
 }
 
 .bot-summary-value {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+  line-height: 1.25;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
 }
 
 .bot-summary-share {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-}
-
-.bot-summary-delta {
-  margin-top: 4px;
 }
 
 /* ========================================
@@ -1443,31 +1509,31 @@ button {
 }
 
 .data-table th {
-  padding: 10px 16px;
+  padding: 8px 12px;
   text-align: left;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
 }
 
 .data-table th:first-child,
 .data-table td:first-child {
-  padding-left: 24px;
+  padding-left: 16px;
 }
 
 .data-table th:last-child,
 .data-table td:last-child {
-  padding-right: 24px;
+  padding-right: 16px;
 }
 
 .data-table td {
-  padding: 11px 16px;
-  font-size: 13px;
-  color: var(--text-body);
-  border-bottom: 1px solid var(--border-light);
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--border-row);
   vertical-align: middle;
 }
 
@@ -1476,7 +1542,7 @@ button {
 }
 
 .data-table tbody tr:hover {
-  background: var(--primary-lighter);
+  background: var(--hover-bg);
 }
 
 .data-table .num {
@@ -1499,7 +1565,7 @@ button {
 }
 
 .data-table th.sorted {
-  color: var(--primary-text);
+  color: var(--text-dark);
 }
 
 .data-table tr.is-link {
@@ -1508,6 +1574,17 @@ button {
 
 .cell-url {
   max-width: min(400px, 27vw);
+}
+
+/* In a table the URL column takes whatever width the other columns leave,
+   and truncates in it, so a narrow card never scrolls sideways. */
+.data-table td:has(> .cell-url) {
+  width: 100%;
+  max-width: 0;
+}
+
+.data-table td > .cell-url {
+  max-width: none;
 }
 
 .cell-last {
@@ -1553,7 +1630,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 24px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -1566,9 +1643,9 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 24px;
-  font-size: 13px;
-  color: var(--text-muted);
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
   border-top: 1px solid var(--border-light);
 }
 
@@ -1588,7 +1665,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 28px;
   padding: 0 12px;
   font-size: 13px;
   font-weight: 500;
@@ -1644,7 +1721,7 @@ button {
   width: 100%;
   padding: 10px 12px;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-body);
   background: var(--bg-white);
   border: 1px solid var(--border-light);
@@ -1723,9 +1800,9 @@ button {
 .event {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   background: var(--bg-primary);
@@ -1735,24 +1812,24 @@ button {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 4px 8px;
 }
 
 .event-field {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-dark);
 }
 
 .event-kind {
-  font-size: 13px;
-  color: var(--text-body);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .event-pages {
   margin-left: auto;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--primary-text);
   font-variant-numeric: tabular-nums;
 }
@@ -1796,9 +1873,9 @@ button {
 
 .stack-label {
   grid-area: label;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-dark);
 }
 
 .stack-track {
@@ -1820,7 +1897,7 @@ button {
 .stack-value {
   grid-area: value;
   text-align: right;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
@@ -1893,8 +1970,8 @@ button {
   margin: 20px 0 0;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .code {
@@ -1966,7 +2043,7 @@ button {
 }
 
 .callout {
-  padding: 16px 24px;
+  padding: 12px 16px;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   background: var(--bg-white);
@@ -1981,14 +2058,14 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-dark);
 }
 
 .callout-text {
   margin: 6px 0 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-body);
 }
 
@@ -2187,16 +2264,16 @@ button {
 .tm-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 18px;
-  font-weight: 700;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text-dark);
 }
 
 .tm-sub {
   margin-top: 4px;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .tm-seen-by {
@@ -2205,7 +2282,7 @@ button {
   align-items: center;
   gap: 6px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .tm-chip {
@@ -2234,7 +2311,7 @@ button {
    ======================================== */
 .bb svg {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .bb text,
@@ -2345,26 +2422,34 @@ button {
     display: flex;
     gap: 4px;
     overflow-x: auto;
-    padding: 0 8px 8px;
+    padding: 8px;
   }
 
-  .nav-group + .nav-group { margin-top: 0; }
-  .nav-group { display: flex; }
-  .nav-group-label { display: none; }
-  .nav-item { border-left: 0; border-radius: var(--radius); white-space: nowrap; }
+  /* One scrolling row of reports: no group rows, and none folded away. */
+  .nav-group,
+  .nav-sub,
+  .nav-sub[hidden] { display: flex; }
+  .nav-group-toggle { display: none; }
+  .nav-item { width: auto; padding: 4px 12px; border-radius: var(--radius); white-space: nowrap; }
   .sidebar-footer { display: none; }
 
   .main-content {
-    padding: 20px 16px 40px;
-  }
-
-  .report-header {
-    flex-direction: column;
+    --content-pad: 16px;
   }
 
   .report-actions {
     flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
+    padding-bottom: 4px;
   }
+
+  .report-strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .strip-trailing { display: none; }
 
   /* The header stacks, so the period box sits on the left: open to the right. */
   .period-pop {
@@ -2379,6 +2464,11 @@ button {
 }
 
 @media (max-width: 560px) {
+  /* The period name stays; the dates are one tap away in the popover. */
+  .period-range {
+    display: none;
+  }
+
   .period-pop-body {
     grid-template-columns: 1fr;
   }

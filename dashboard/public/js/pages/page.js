@@ -334,7 +334,7 @@ function versionMarkers(data) {
 export function renderPage(outlet, params) {
   const url = params.get("url");
   if (!url) {
-    outlet.append(reportHeader({ title: "Page", back: { href: "/pages", label: "Pages" } }), emptyState("Pick a page from the Pages list."));
+    outlet.append(reportHeader({ title: "Page", strip: { back: { href: "/pages", label: "Pages" } } }), emptyState("Pick a page from the Pages list."));
     return null;
   }
 
@@ -343,7 +343,7 @@ export function renderPage(outlet, params) {
     ? h("a", { className: "btn btn-ghost", href: url, target: "_blank", rel: "noopener noreferrer" }, icon("external"), "Open page")
     : null;
   outlet.append(
-    reportHeader({ title: shortUrl(url), subtitle: url, back: { href: "/pages", label: "Pages" }, actions: open })
+    reportHeader({ title: shortUrl(url), strip: { back: { href: "/pages", label: "Pages" }, title: url }, actions: open })
   );
 
   const summary = h("div");

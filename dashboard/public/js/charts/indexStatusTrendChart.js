@@ -68,14 +68,14 @@ export class IndexStatusTrendChart extends Chart {
     card.className = "card";
 
     const header = document.createElement("div");
-    header.className = "card-header card-header-lg";
+    header.className = "card-header";
     const title = document.createElement("h3");
-    title.className = "card-title-lg";
+    title.className = "card-title";
     title.textContent = TITLE;
     header.appendChild(title);
 
     const body = document.createElement("div");
-    body.className = "card-body card-body-lg";
+    body.className = "card-body";
 
     card.append(header, body);
     return { card, body };

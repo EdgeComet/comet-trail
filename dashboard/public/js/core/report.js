@@ -1,5 +1,5 @@
-// Report header shared by every page view: title and subtitle on the left, the
-// period selector on the right, as in the EdgeComet dashboard. The selector
+// Report header shared by every page view: the title on the left, the period
+// selector on the right, as in the EdgeComet dashboard. The selector
 // drives the one global range (core/dateRange.js), so a period chosen on one
 // page carries over to the next.
 //
@@ -23,7 +23,7 @@ export function periodSelector(range = globalRange) {
     h("button", { type: "button", className: "period-btn", title: `Last ${days} days`, text: `${days}D` })
   );
   const nameEl = h("strong", { className: "period-name" });
-  const datesEl = h("span");
+  const datesEl = h("span", { className: "period-range" });
   const trigger = h(
     "button",
     { type: "button", className: "period-dates", "aria-haspopup": "dialog", "aria-expanded": "false", title: "Choose the period" },
@@ -101,7 +101,7 @@ export function periodSelector(range = globalRange) {
     trigger.setAttribute("aria-expanded", "true");
     document.addEventListener("mousedown", onOutside);
     document.addEventListener("keydown", onKey);
-    pop.querySelector(".period-preset.active, .period-preset")?.focus();
+    (pop.querySelector(".period-preset.active") ?? pop.querySelector(".period-preset"))?.focus();
   }
 
   trigger.addEventListener("click", () => (pop ? close() : open()));
@@ -149,7 +149,7 @@ function buildPopover(range, { onPreset, onCustom, onCancel }) {
   const custom = h(
     "form",
     { className: "period-custom", on: { submit: apply } },
-    h("div", { className: "period-custom-title", text: "Custom range" }),
+    h("div", { className: "period-custom-title", text: "Custom Range" }),
     h(
       "div",
       { className: "period-fields" },
@@ -177,17 +177,51 @@ function buildPopover(range, { onPreset, onCustom, onCancel }) {
   );
 }
 
-export function reportHeader({ title, subtitle = "", period = true, actions = null, back = null }) {
-  return h(
-    "header",
-    { className: "report-header" },
+// The page chrome, as in the EdgeComet dashboard: a 60px header bar (title on
+// the left, actions and the period on the right), an optional 40px strip under
+// it, then a lead line saying what the report shows. Returns a fragment, so a
+// view appends it like one node.
+export function reportHeader({ title, subtitle = "", period = true, actions = null, strip = null }) {
+  const frag = document.createDocumentFragment();
+  frag.append(
     h(
-      "div",
-      { className: "report-heading" },
-      back ? h("a", { className: "back-link", href: back.href, "data-route": "" }, icon("arrowLeft"), back.label) : null,
-      h("h1", { className: "report-title", text: title }),
-      subtitle ? h("p", { className: "report-subtitle", text: subtitle }) : null
-    ),
-    h("div", { className: "report-actions" }, actions, period ? periodSelector() : null)
+      "header",
+      { className: "report-header" },
+      h("h1", { className: "report-title", title, text: title }),
+      h("div", { className: "report-actions" }, actions, period ? periodSelector() : null)
+    )
+  );
+  if (strip) frag.append(reportStrip(strip));
+  if (subtitle) frag.append(h("p", { className: "report-lead", text: subtitle }));
+  return frag;
+}
+
+// The strip under the header: a back link out of a detail view, the view's
+// identity (`title`), tabs between views of one report, and a caption at the
+// right end. Tabs: [{ label, href, active }].
+function reportStrip({ back = null, title = null, tabs = null, label = "", trailing = null }) {
+  return h(
+    "div",
+    { className: "report-strip" },
+    back
+      ? h("a", { className: "strip-back", href: back.href, "data-route": "" }, icon("arrowLeft"), back.label)
+      : null,
+    title ? h("span", { className: "strip-title", title, text: title }) : null,
+    tabs
+      ? h(
+          "nav",
+          { className: "tabs", "aria-label": label },
+          tabs.map((t) =>
+            h("a", {
+              className: t.active ? "tab active" : "tab",
+              href: t.href,
+              "data-route": "",
+              "aria-current": t.active ? "page" : null,
+              text: t.label,
+            })
+          )
+        )
+      : null,
+    trailing ? h("div", { className: "strip-trailing" }, trailing) : null
   );
 }

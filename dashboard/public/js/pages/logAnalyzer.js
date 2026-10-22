@@ -56,7 +56,7 @@ function metricCards({ current: c, previous: p }) {
 function botCell(row) {
   return h(
     "span",
-    { className: "bot-legend-item", style: { cursor: "default" } },
+    { className: "inline-dot" },
     h("span", { className: "bot-legend-dot", style: { background: cssVar(`--bot-${row.family}`) } }),
     h("span", { text: row.bot_name })
   );
