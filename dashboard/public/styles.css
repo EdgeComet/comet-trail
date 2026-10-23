@@ -940,6 +940,15 @@ button {
   color: var(--text-secondary);
 }
 
+/* A stat card's footnote is always one line, so the cards in a row keep one
+   height; statCard() puts the full text in the title. */
+.stat-card .stat-footnote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ========================================
    Badges
    ======================================== */

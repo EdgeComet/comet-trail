@@ -440,7 +440,7 @@ function stripCards(tag, t) {
       label: "Duplicated",
       value: fmtInt(c.duplicated),
       delta: delta("duplicated"),
-      foot: `${share(c.duplicated, c.present)} of ${fmtInt(c.present)} pages with ${tab.withTag}`,
+      foot: `${share(c.duplicated, c.present)} of ${fmtInt(c.present)} pages that have one`,
     },
     tag === "h1"
       ? { label: "Multiple H1s", value: fmtInt(c.multiple), delta: delta("multiple"), foot: "more than one H1 on the page" }

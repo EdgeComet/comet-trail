@@ -157,7 +157,7 @@ export function deltaEl(cur, prev, { kind = "pct", good = "up" } = {}) {
 }
 
 // A KPI tile: label (+ optional "View →" link), big value with its change, and
-// a footnote.
+// a one-line footnote (cut with an ellipsis when it runs long, full text on hover).
 export function statCard({ label, value, delta = null, foot = "", href = null }) {
   return h(
     "div",
@@ -169,7 +169,7 @@ export function statCard({ label, value, delta = null, foot = "", href = null })
       href ? h("a", { className: "stat-link", href, "data-route": "", text: "View →" }) : null
     ),
     h("div", { className: "stat-value-row" }, h("span", { className: "stat-value", text: value }), delta),
-    foot ? h("div", { className: "stat-footnote", text: foot }) : null
+    foot ? h("div", { className: "stat-footnote", title: foot, text: foot }) : null
   );
 }
 

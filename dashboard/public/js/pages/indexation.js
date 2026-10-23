@@ -42,17 +42,17 @@ function summaryCards(d) {
       label: "Not indexable",
       value: fmtInt(notIndexable),
       delta: deltaEl(notIndexable, prev(notBefore), { kind: "abs", good: "down" }),
-      foot: "noindex, canonical elsewhere, redirect or error",
+      foot: "noindex, canonicalized or not 200",
     },
     {
       label: "Lost indexability",
       value: fmtInt(sum(lost, "pages")),
-      foot: `since the previous period · ${fmtInt(sum(lost, "googlebot"))} Googlebot visits on them`,
+      foot: `${fmtInt(sum(lost, "googlebot"))} Googlebot visits on them`,
     },
     {
       label: "Regained",
       value: fmtInt(sum(regained, "pages")),
-      foot: "became indexable since the previous period",
+      foot: "became indexable this period",
     },
   ];
 }
