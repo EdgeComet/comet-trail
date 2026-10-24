@@ -5,19 +5,24 @@ import { h, card, emptyMessage, urlCell, fmtInt } from "../core/ui.js";
 // from -> to pair. Rows open to show example URLs. Shown before "Show all":
 // the worst moves, then the recoveries.
 // The provider returns { moves, partial }, each move
-// { from, to, direction: worse|lateral|better, pages, googlebot, ai_user, sample }.
-//   new MovesChart(el, provider, { badge(key), empty, foot(d)? })
-// `foot` returns an optional note for under the list.
+// { from, to, direction: worse|lateral|better, pages, visits, ai_user, sample }.
+//   new MovesChart(el, provider, { badge(key), empty, foot(d)?, who? })
+// `foot` returns an optional note for under the list. `who` names the bot whose
+// `visits` the rows count ("Googlebot" by default); a report of that bot alone
+// (Log Analyzer > Googlebot > Indexability) passes `ai: false`, as it reads no
+// AI user fetches.
 const TOP_WORSE = 5;
 const TOP_BETTER = 3;
 const TITLE = "Changed since the previous period";
 
 export class MovesChart extends Chart {
-  constructor(el, provider, { badge, empty, foot = null }) {
+  constructor(el, provider, { badge, empty, foot = null, who = "Googlebot", ai = true }) {
     super(el, provider);
     this.badge = badge;
     this.empty = empty;
     this.foot = foot;
+    this.who = who;
+    this.ai = ai;
     this.open = new Set(); // "from>to" keys of expanded moves
     this.showAll = false;
   }
@@ -57,7 +62,7 @@ export class MovesChart extends Chart {
           h("span", { className: "move-dir", text: m.direction === "worse" ? "↓" : m.direction === "better" ? "↑" : "→" }),
           h("span", { className: "move-path" }, this.badge(m.from), h("span", { className: "move-arrow", text: "→" }), this.badge(m.to)),
           h("span", { className: "move-pages", text: `${fmtInt(m.pages)} page${m.pages === 1 ? "" : "s"}` }),
-          h("span", { className: "move-demand", text: `${fmtInt(m.googlebot)} Googlebot visits · ${fmtInt(m.ai_user)} AI user fetches` })
+          h("span", { className: "move-demand", text: this.demand(m) })
         );
         const sample = isOpen
           ? h(
@@ -81,7 +86,12 @@ export class MovesChart extends Chart {
           )
         : null
     );
-    const sub = d.partial ? "the previous period is only partly recorded" : "worst first, with the demand on those pages now";
+    const sub = d.partial ? "the previous period is only partly recorded" : `worst first, with the ${this.ai ? "demand" : `${this.who} visits`} on those pages now`;
     this.el.replaceChildren(card({ title: TITLE, subtitle: sub }, list, foot));
+  }
+
+  demand(m) {
+    const visits = `${fmtInt(m.visits)} ${this.who} visits`;
+    return this.ai ? `${visits} · ${fmtInt(m.ai_user)} AI user fetches` : visits;
   }
 }

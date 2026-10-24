@@ -13,7 +13,8 @@ A site crawler shows you what your crawler sees. A log file shows that Googlebot
 - **No crawl to run.** Nothing to schedule, no crawl load on your origin, no stale export. The data updates with every bot visit and is freshest where bots return most.
 - **A time machine.** Every visit is kept, so you can open any URL and see each version bots received, when it changed, and which version each bot saw last. A fix is done when Googlebot has fetched it, and CometTrail shows you when that happened.
 - **Automatic comparison.** Every report compares the period with the one before: which pages lost indexability, which got it back, which release changed canonicals on 80 pages.
-- **AI bots by purpose.** Training crawls, AI search crawls and live fetches that an assistant makes for a person are counted apart and set next to Googlebot.
+- **AI bots by purpose.** Training crawls, AI search crawls and live fetches that an assistant makes for a person are counted apart, in a report of their own.
+- **Googlebot and Bingbot apart.** Each search engine's crawler gets its own report: how much it crawled, how much of that landed on pages it can index, and which pages it still sees in an old version.
 
 Read more in [Evergreen Crawl: A New Way to See Your Site Through Googlebot's Eyes](https://edgecomet.com/blog/evergreen-crawl-a-new-way-to-see-your-site-through-googlebots-eyes/).
 
@@ -39,6 +40,8 @@ The demo data follows a few stories you can look for:
 | Content | A release five days ago dropped the product name from the headlamp title template: every headlamp page bots fetched since then shares "Headlamps \| GearShop", and the H1 already tells them apart. Also sold-out products that answer 200 with "Product not found", new tents launched with "Lorem ipsum" descriptions, and a sale banner in the jackets H1. |
 | Changes | The canonical bug and its fix, a title template rollout, guides that lost their H1. The biggest events also stand as dashed lines on the Bot Activity, Indexability over time and Response Status Codes charts: the canonical bug in red, its fix in green. |
 | AI Bots | AI assistants fetching pages for people, more each week, and still asking for products the store no longer sells. |
+| Log Analyzer > Googlebot > Indexability | `/p/ridgeline-gtx-hiking-boot` is still canonicalized to `/c/boots` here, though the site fixed it 12 days ago: each page is judged by Googlebot's own newest visit, and Googlebot has not fetched it since. Evergreen Crawl > Indexation, which reads every bot, already counts it as indexable. |
+| Log Analyzer > Googlebot > Efficiency | About a third of Googlebot's requests go to pages Google cannot index: mostly filter and sort URLs canonicalized to their category, then the leaked noindex, redirects and errors. |
 | Log Analyzer > Status Codes | A three-hour outage 15 days ago: a day with 503s and unanswered requests, and Googlebot crawling less for the two days after. Ten discontinued products that answered 404 and now redirect, which AI assistants still fetch, and long-dead products that still answer 404, six of them still recommended by assistants. |
 | Log Analyzer > Loading Time | Internal search pages are the slowest section at 0.8-1.5 s, filter URLs are slower than product pages, and the outage answered in 3-9 s before Googlebot backed off. |
 
@@ -46,17 +49,18 @@ The demo data follows a few stories you can look for:
 
 ## What you get
 
-![The AI Bots report: AI user fetches, AI share of crawl, pages read by AI and AI 404s, above a chart of Googlebot Search, AI training, AI search and AI user fetches over 30 days](docs/images/ai-bots.png)
+![The AI Bots report: AI user fetches, AI share of crawl, pages read by AI and AI 404s, above a chart of AI training, AI search and AI user fetches over 30 days](docs/images/ai-bots.png)
 
 | Report | Answers |
 |---|---|
-| **Log Analyzer > Overview** | How much did each bot family crawl, and which changes did bots find on many pages at once (dashed lines on the chart)? How much of Googlebot's crawl landed on indexable pages (crawl efficiency: the share of Googlebot Search requests that received a page Google can index), and did the rest go to canonicalized or noindex pages, redirects or errors? Which status codes and response times did all bots, Googlebot or the AI bots get (a switch on each of the two cards), and what did the newest visits receive? |
-| **Log Analyzer > Status Codes** | What did Googlebot, the AI bots or all bots get back (one switch for the tab, Googlebot first), day by day, per status code and per section, against the previous period, and which status code changes did the site make? Which URLs answer 404, 410, 5xx or nothing, since when, what did they answer before, and do AI assistants still ask for them? Which redirecting URLs do bots keep fetching? |
+| **Log Analyzer > Overview** | How much did each bot family crawl, and which changes did bots find on many pages at once (dashed lines on the chart)? How much of Googlebot's crawl landed on indexable pages (crawl efficiency: the share of Googlebot Search requests that received a page Google can index), and did the rest go to canonicalized or noindex pages, redirects or errors? Which status codes and response times did all bots, Googlebot, Bingbot or the AI bots get (a switch on each of the two cards), and what did the newest visits receive? |
+| **Log Analyzer > Status Codes** | What did Googlebot, Bingbot, the AI bots or all bots get back (one switch for the tab, Googlebot first), day by day, per status code and per section, against the previous period, and which status code changes did the site make? Which URLs answer 404, 410, 5xx or nothing, since when, what did they answer before, and do AI assistants still ask for them? Which redirecting URLs do bots keep fetching? |
 | **Log Analyzer > Loading Time** | How fast did the origin answer (the median, the 95th percentile and the share of requests that took 1 s or longer), did the crawl fall off after slow days, and which sections and URLs are slowest? |
-| **Log Analyzer > AI Bots** | Why did each AI come (training, AI search, a live fetch for a person), which sections does each read compared with Googlebot, and which missing pages are assistants still asking for? |
+| **Log Analyzer > AI Bots** | Why did each AI come (training, AI search, a live fetch for a person), which sections does each purpose read, and which missing pages are assistants still asking for? |
+| **Log Analyzer > Googlebot, Bingbot** | One report per search engine crawler, after EdgeComet's, with three tabs. **Crawl Budget:** how many requests and unique URLs, per day and per URL, which status codes and response times it got, how much of its crawl reached indexable pages, and which of the engine's other crawlers came (images, ads). **Efficiency:** how its crawl splits into valuable pages, questionable parameter URLs and waste, why the waste happens, which URLs it found or dropped since the previous period, and which it crawls far more or much less than before. **Indexability:** the Indexation report judged by that crawler's own newest visit, so a fix it has not fetched yet still shows as the old verdict. |
 | **Evergreen Crawl > Indexation** | Which pages can be indexed, judged from the page bots received, and which changed verdict since the previous period? How did the verdicts move day by day (each day counts the pages bots fetched in as many days up to it as the period has), next to the changes to status codes, robots tags and canonicals that moved them? Where do the canonicals that point to another URL lead: to indexable pages, or to redirects, errors, noindex pages and chains? |
 | **Evergreen Crawl > Content** | Which titles, meta descriptions and H1s of indexable pages are missing, duplicated or too long in words, which titles and descriptions run past the 60 and 160 characters search results usually show (counted beside the verdicts, which stay word-based), why each duplicate group happens and what would tell its pages apart, which pages got a worse verdict since the previous period, how each title matches its H1, and which pages carry placeholder text or read as "not found"? Every figure opens the pages behind it. |
-| **Evergreen Crawl > Changes** | Every change bots saw, dated by the first visit that showed it, grouped into release-sized events. The biggest events also stand as dashed lines on the Overview, Indexation and Status Codes charts: red when most of their changes cost pages their indexability or their 2xx, green when they gave it back. |
+| **Evergreen Crawl > Changes** | Every change bots saw, dated by the first visit that showed it, grouped into release-sized events. The biggest events also stand as dashed lines on the Overview, Indexation, Status Codes, Googlebot and Bingbot charts: red when most of their changes cost pages their indexability or their 2xx, green when they gave it back. |
 | **Pages** | Every URL bots fetched. Each opens its time machine: versions, what changed, which version each bot saw last, and the visit log. |
 
 Every report reads the period in the header: the last 24 hours, 7, 14, 30 or 90 days, or a custom range of up to 365 days. Change figures compare it with the period of the same length just before. The period is kept in the address bar (`?period=7d`, `?period=2026-09-01_2026-09-30`), so a reload or a shared link opens the same view. Days are UTC, like the charts. Light and dark themes are in the sidebar.
@@ -99,7 +103,7 @@ The full schema is in [`schema.sql`](schema.sql); ready-made SQL for common ques
 
 ### Bots
 
-[`shared/bots.js`](shared/bots.js) lists the tracked bots, groups them into the families the charts draw (Googlebot Search, Bingbot Search, ChatGPT, Claude, Perplexity, Meta AI, Other) and tags each AI bot with its purpose:
+[`shared/bots.js`](shared/bots.js) lists the tracked bots, groups them into the families the charts draw (Googlebot Search, Bingbot Search, ChatGPT, Claude, Perplexity, Meta AI, Other), tags each Google and Bing crawler with its engine for the Googlebot and Bingbot reports, and tags each AI bot with its purpose:
 
 | Purpose | Bots |
 |---|---|

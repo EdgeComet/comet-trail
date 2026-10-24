@@ -670,9 +670,13 @@ function buildPickers(pages) {
 // that is d days ago. `human` bots fetch while people are awake (UTC daytime)
 // and a little less on weekends.
 const lerp = (from, to, d) => to + (from - to) * (d / DAYS); // value `from` at D-120, `to` today
+// Bingbot's desktop or smartphone crawler, drawn from a generator of its own,
+// so splitting Bingbot in two changed no other row.
+const bingSplit = mulberry32(SEED + 3);
+const bingbot = () => (bingSplit() < 0.6 ? 'Bingbot-Smartphone' : 'Bingbot');
 const STREAMS = [
   { bot: () => (chance(0.8) ? 'Googlebot-Smartphone' : 'Googlebot'), profile: 'googlebot', rate: (d) => lerp(240, 270, d), googlebot: true },
-  { bot: 'Bingbot', profile: 'bing', rate: () => 45 },
+  { bot: bingbot, profile: 'bing', rate: () => 45 },
   { bot: 'Googlebot-Image', profile: 'image', rate: () => 20 },
   { bot: 'AdsBot-Google', profile: 'ads', rate: () => 10 },
   { bot: 'GoogleOther', profile: 'training', rate: () => 5 },
@@ -766,8 +770,8 @@ function scriptedVisits(pages, push) {
   const hero = HERO.product;
   for (let d = DAYS - 2; d > 15; d -= uniform(1.2, 2.8)) visit(hero, gbot, d);
   push(gbot(), byUrl.get(hero), ago(14) + 3 * HOUR); // the last Googlebot visit
-  for (let d = DAYS - 5; d > 0.5; d -= uniform(5, 8)) visit(hero, 'Bingbot', d);
-  for (const d of [10.3, 4.2]) visit(hero, 'Bingbot', d);
+  for (let d = DAYS - 5; d > 0.5; d -= uniform(5, 8)) visit(hero, bingbot, d);
+  for (const d of [10.3, 4.2]) visit(hero, bingbot, d);
   for (const d of [95, 61, 33, 8.4]) visit(hero, 'GPTBot', d);
   for (let d = 58; d > 1; d -= uniform(3, 6)) visit(hero, 'ChatGPT-User', d);
   for (const d of [11.2, 5.1, 2.3]) visit(hero, 'ChatGPT-User', d);
@@ -780,7 +784,7 @@ function scriptedVisits(pages, push) {
 
   // S3: Googlebot and Bingbot reach the leaked noindex.
   for (const d of [2.6, 1.3, 0.4]) visit(HERO.category, gbot, d);
-  visit(HERO.category, 'Bingbot', 2.1);
+  visit(HERO.category, bingbot, 2.1);
 
   // S6: Googlebot sees the guide without its H1.
   for (const d of [5.2, 2.4, 0.8]) visit(HERO.guide, gbot, d);
@@ -798,12 +802,12 @@ function scriptedVisits(pages, push) {
 
   // S8: Googlebot and Bingbot reach the headlamps category after the release.
   for (const d of [4.6, 2.2, 0.7]) ownVisit(HERO.titleBug, gbot, d);
-  ownVisit(HERO.titleBug, 'Bingbot', 3.4);
+  ownVisit(HERO.titleBug, bingbot, 3.4);
 
   // S9: the new tents are found within days of their launch.
   for (const [i, page] of pages.filter((p) => p.launched).entries()) {
     for (const d of [3.6, 1.9, 0.6]) ownVisit(page.url, gbot, d - i * 0.2);
-    ownVisit(page.url, 'Bingbot', 2.8 - i * 0.3);
+    ownVisit(page.url, bingbot, 2.8 - i * 0.3);
     ownVisit(page.url, 'OAI-SearchBot', 2.1 - i * 0.3);
     if (i === 0) for (const d of [1.4, 0.3]) ownVisit(page.url, 'ChatGPT-User', d);
   }
@@ -811,7 +815,7 @@ function scriptedVisits(pages, push) {
   // S10: bots keep fetching the sold-out products' "not found" pages.
   for (const [i, page] of pages.filter((p) => p.soldOut).entries()) {
     for (const d of [7.1, 4.3, 1.5]) ownVisit(page.url, gbot, d - i * 0.3);
-    ownVisit(page.url, 'Bingbot', 5.2 - i * 0.4);
+    ownVisit(page.url, bingbot, 5.2 - i * 0.4);
     if (i === 0) for (const d of [3.9, 0.9]) ownVisit(page.url, 'ChatGPT-User', d);
   }
 
@@ -822,7 +826,7 @@ function scriptedVisits(pages, push) {
   const s12Visit = (url, bot, days) =>
     withRandom(s12, () => push(typeof bot === 'function' ? bot() : bot, byUrl.get(url), at(days), s12));
   for (const d of [6.4, 4.7, 2.9, 1.1]) s12Visit(HERO.moved, gbot, d);
-  for (const d of [5.6, 2.2]) s12Visit(HERO.moved, 'Bingbot', d);
+  for (const d of [5.6, 2.2]) s12Visit(HERO.moved, bingbot, d);
   s12Visit(HERO.moved, 'GPTBot', 3.5);
 }
 

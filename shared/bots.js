@@ -9,6 +9,9 @@
 //   family   - which line it joins on the Bot Activity chart (FAMILIES below).
 //   purpose  - AI bots only: why the bot came (PURPOSES below). Families and
 //              purposes follow EdgeComet's product taxonomy.
+//   engine   - search engine crawlers only: whose crawler it is, 'google' or
+//              'bing'. The Googlebot and Bingbot reports count their Search
+//              family; their Bot Variants table lists every crawler of the engine.
 //
 // Matching is by user agent only: a scraper that claims to be Googlebot is stored
 // as Googlebot. See "What's deliberately left out" in README.md.
@@ -32,17 +35,21 @@ export const PURPOSES = [
 export const BOTS = [
   // Google. Only desktop and smartphone Googlebot form the "Googlebot Search"
   // family; the image, news, ads and GoogleOther fetchers count as Other.
-  { name: 'Googlebot-Image', pattern: /Googlebot-Image/i, family: 'other' },
-  { name: 'Googlebot-Video', pattern: /Googlebot-Video/i, family: 'other' },
-  { name: 'Googlebot-News', pattern: /Googlebot-News/i, family: 'other' },
-  { name: 'AdsBot-Google-Mobile', pattern: /AdsBot-Google-Mobile/i, family: 'other' },
-  { name: 'AdsBot-Google', pattern: /AdsBot-Google/i, family: 'other' },
-  { name: 'GoogleOther', pattern: /GoogleOther/i, family: 'other' },
-  { name: 'Googlebot-Smartphone', pattern: /Mobile[^)]*Googlebot|Googlebot[^)]*Mobile/i, family: 'googlebot' },
-  { name: 'Googlebot', pattern: /Googlebot/i, family: 'googlebot' },
+  { name: 'Googlebot-Image', pattern: /Googlebot-Image/i, family: 'other', engine: 'google' },
+  { name: 'Googlebot-Video', pattern: /Googlebot-Video/i, family: 'other', engine: 'google' },
+  { name: 'Googlebot-News', pattern: /Googlebot-News/i, family: 'other', engine: 'google' },
+  { name: 'AdsBot-Google-Mobile', pattern: /AdsBot-Google-Mobile/i, family: 'other', engine: 'google' },
+  { name: 'AdsBot-Google', pattern: /AdsBot-Google/i, family: 'other', engine: 'google' },
+  { name: 'GoogleOther', pattern: /GoogleOther/i, family: 'other', engine: 'google' },
+  { name: 'Googlebot-Smartphone', pattern: /Mobile[^)]*Googlebot|Googlebot[^)]*Mobile/i, family: 'googlebot', engine: 'google' },
+  { name: 'Googlebot', pattern: /Googlebot/i, family: 'googlebot', engine: 'google' },
+
+  // Bing. Its smartphone crawler says "Mobile" before "bingbot"; rows recorded
+  // before it had a name of its own are stored as Bingbot.
+  { name: 'Bingbot-Smartphone', pattern: /Mobile[^)]*bingbot|bingbot[^)]*Mobile/i, family: 'bingbot', engine: 'bing' },
+  { name: 'Bingbot', pattern: /bingbot/i, family: 'bingbot', engine: 'bing' },
 
   // Other search engines
-  { name: 'Bingbot', pattern: /bingbot/i, family: 'bingbot' },
   { name: 'YandexBot', pattern: /YandexBot/i, family: 'other' },
   { name: 'DuckDuckBot', pattern: /DuckDuckBot/i, family: 'other' },
   { name: 'Applebot', pattern: /Applebot\//i, family: 'other' },
@@ -132,3 +139,4 @@ export function purposeSql(col = 'bot_name') {
 // into user fetches, AI search and training (Claude-Web, retired, has none).
 export const isAiBot = (b) => Boolean(b.purpose);
 export const isGooglebot = (b) => b.family === 'googlebot';
+export const isBingbot = (b) => b.family === 'bingbot';

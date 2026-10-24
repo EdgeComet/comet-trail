@@ -5,6 +5,11 @@
 // compared with its verdict in the period before: no crawl to schedule, no
 // export to diff. Providers live at module scope so their in-memory cache
 // survives navigating away and back.
+//
+// The Indexability tab of Log Analyzer > Googlebot and > Bingbot shows the same
+// cards for one bot (indexationCards with a scope): each page is then judged
+// by the newest visit that bot got, so a fix it has not fetched yet still
+// reads as the old verdict there.
 import { globalRange } from "../core/dateRange.js";
 import { Dashboard } from "../core/registry.js";
 import { Chart } from "../core/chart.js";
@@ -23,7 +28,12 @@ const canonicalProvider = new Provider("canonicalAnalysis", "/api/canonical-anal
 
 const sum = (list, key) => list.reduce((a, x) => a + x[key], 0);
 
-function summaryCards(d) {
+// Whose visits the cards read. `group` is the endpoints' ?group= (lib/sql.js
+// BOT_GROUP_SQL); `who` names the bot whose visits measure the demand on a
+// page; `ai` is false when the AI user fetches are out of the scope.
+const ALL_BOTS = { group: "all", who: "Googlebot", bots: "bots", ai: true };
+
+const summaryCards = (scope) => (d) => {
   const indexable = d.buckets.find((b) => b.key === "indexable") ?? { pages: 0, before: 0 };
   const notIndexable = d.totals.pages - indexable.pages;
   const notBefore = d.totals.before - indexable.before;
@@ -35,7 +45,7 @@ function summaryCards(d) {
       label: "Indexable",
       value: fmtInt(indexable.pages),
       delta: deltaEl(indexable.pages, prev(indexable.before), { kind: "abs" }),
-      foot: `${fmtPct1(d.totals.pages ? (indexable.pages / d.totals.pages) * 100 : 0)} of ${fmtInt(d.totals.pages)} pages bots fetched`,
+      foot: `${fmtPct1(d.totals.pages ? (indexable.pages / d.totals.pages) * 100 : 0)} of ${fmtInt(d.totals.pages)} pages ${scope.bots} fetched`,
     },
     {
       label: "Not indexable",
@@ -46,7 +56,7 @@ function summaryCards(d) {
     {
       label: "Lost indexability",
       value: fmtInt(sum(lost, "pages")),
-      foot: `${fmtInt(sum(lost, "googlebot"))} Googlebot visits on them`,
+      foot: `${fmtInt(sum(lost, "visits"))} ${scope.who} visits on them`,
     },
     {
       label: "Regained",
@@ -54,7 +64,7 @@ function summaryCards(d) {
       foot: "became indexable this period",
     },
   ];
-}
+};
 
 // --- Verdicts day by day ----------------------------------------------------
 
@@ -67,12 +77,12 @@ const verdictChanges = changeMarkers(["status", "meta_robots", "canonical"]);
 // Each bar counts the pages fetched in a window as long as the period, so the
 // last bar is the Indexability table. While the record is younger than the
 // window, the bars count fewer days of visits and read low.
-function trendSubtitle(d) {
-  const parts = [`pages bots fetched in the ${windowName(d.days)} up to each day, each by its newest visit`];
+const trendSubtitle = (scope) => (d) => {
+  const parts = [`pages ${scope.bots} fetched in the ${windowName(d.days)} up to each day, each by its newest visit`];
   if (d.complete_from === null) parts.push("recording started inside that window, so the bars count fewer days");
   if (verdictChanges(d).length) parts.push("dashed lines mark changes to status codes, robots tags and canonicals");
   return parts.join("; ");
-}
+};
 
 // The marker says the bars before it count fewer days, so it only shows when
 // there are such bars: not when the first bar's window is already recorded in
@@ -88,7 +98,13 @@ const trendMarkers = (d) => [...windowMarkers(d), ...verdictChanges(d)];
 // --- One row per verdict ----------------------------------------------------
 
 class BucketsChart extends Chart {
+  constructor(el, provider, scope) {
+    super(el, provider);
+    this.scope = scope;
+  }
+
   render(d) {
+    const { who, ai } = this.scope;
     const total = d.totals.pages || 1;
     const table = dataTable(
       [
@@ -112,9 +128,9 @@ class BucketsChart extends Chart {
                   h("span", { className: b.left ? (b.key === "indexable" ? "diff-del" : "diff-add") : "muted", text: `-${fmtInt(b.left)}` })
                 ),
         },
-        { label: "Googlebot", num: true, render: (b) => fmtInt(b.googlebot) },
-        { label: "AI fetches", num: true, render: (b) => fmtInt(b.ai_user) },
-      ],
+        { label: ai ? who : `${who} visits`, num: true, render: (b) => fmtInt(b.visits) },
+        ai ? { label: "AI fetches", num: true, render: (b) => fmtInt(b.ai_user) } : null,
+      ].filter(Boolean),
       d.buckets
     );
     const foot = d.partial
@@ -124,7 +140,52 @@ class BucketsChart extends Chart {
           { className: "card-footer" },
           `${fmtInt(d.totals.discovered)} pages newly fetched this period · ${fmtInt(d.totals.not_refetched)} from the previous period not fetched again`
         );
-    this.el.replaceChildren(card({ title: "Indexability", subtitle: "one verdict per page, from its newest visit", flush: true }, table, foot));
+    const subtitle = ai ? "one verdict per page, from its newest visit" : `one verdict per page, from its newest ${who} visit`;
+    this.el.replaceChildren(card({ title: "Indexability", subtitle, flush: true }, table, foot));
+  }
+}
+
+// The Indexation cards, appended to `outlet` and added to `dashboard`, for
+// every bot (Evergreen Crawl > Indexation) or for one (`scope`, as ALL_BOTS:
+// Log Analyzer > Googlebot > Indexability).
+export function indexationCards(outlet, dashboard, scope = ALL_BOTS) {
+  const summary = h("div");
+  const moves = h("div");
+  const buckets = h("div");
+  const trend = h("div", { className: "section" });
+  const canonical = h("div");
+  const targets = h("div");
+  const problems = h("div", { className: "section" });
+  outlet.append(summary, h("div", { className: "grid-2" }, moves, buckets), trend, h("div", { className: "chart-pair" }, canonical, targets), problems);
+
+  const who = scope.ai ? null : scope.who;
+  const charts = [
+    new StatCardsChart(summary, indexationProvider, summaryCards(scope)),
+    new MovesChart(moves, indexationProvider, {
+      badge: bucketBadge,
+      empty: `No page changed its verdict: every page ${scope.bots} fetched in both periods got the same verdict.`,
+      who: scope.who,
+      ai: scope.ai,
+    }),
+    new BucketsChart(buckets, indexationProvider, scope),
+    withChangeEvents(
+      new TimeSeriesChart(trend, trendProvider, {
+        title: "Indexability over time",
+        subtitle: trendSubtitle(scope),
+        token: (key) => BUCKETS[key].token,
+        type: "bar",
+        markers: trendMarkers,
+        hideEmpty: true,
+        empty: "No page was fetched in this period.",
+      })
+    ),
+    new CanonicalSummaryChart(canonical, canonicalProvider),
+    new CanonicalTargetsChart(targets, canonicalProvider, { who }),
+    new CanonicalProblemsChart(problems, canonicalProvider, { who: scope.who }),
+  ];
+  for (const chart of charts) {
+    if (scope.group !== "all") chart.params = { ...chart.params, group: scope.group };
+    dashboard.add(chart);
   }
 }
 
@@ -136,40 +197,8 @@ export function renderIndexation(outlet) {
     })
   );
 
-  const summary = h("div");
-  const moves = h("div");
-  const buckets = h("div");
-  const trend = h("div", { className: "section" });
-  const canonical = h("div");
-  const targets = h("div");
-  const problems = h("div", { className: "section" });
-  outlet.append(summary, h("div", { className: "grid-2" }, moves, buckets), trend, h("div", { className: "chart-pair" }, canonical, targets), problems);
-
   const dashboard = new Dashboard(globalRange);
-  dashboard.add(new StatCardsChart(summary, indexationProvider, summaryCards));
-  dashboard.add(
-    new MovesChart(moves, indexationProvider, {
-      badge: bucketBadge,
-      empty: "No page changed its verdict: every page bots fetched in both periods got the same verdict.",
-    })
-  );
-  dashboard.add(new BucketsChart(buckets, indexationProvider));
-  dashboard.add(
-    withChangeEvents(
-      new TimeSeriesChart(trend, trendProvider, {
-        title: "Indexability over time",
-        subtitle: trendSubtitle,
-        token: (key) => BUCKETS[key].token,
-        type: "bar",
-        markers: trendMarkers,
-        hideEmpty: true,
-        empty: "No page was fetched in this period.",
-      })
-    )
-  );
-  dashboard.add(new CanonicalSummaryChart(canonical, canonicalProvider));
-  dashboard.add(new CanonicalTargetsChart(targets, canonicalProvider));
-  dashboard.add(new CanonicalProblemsChart(problems, canonicalProvider));
+  indexationCards(outlet, dashboard);
   dashboard.start();
 
   return () => dashboard.destroy();

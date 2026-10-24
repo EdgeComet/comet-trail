@@ -1,19 +1,18 @@
 // GET /api/ai/trend?from=&to=&bucket=hour|day
-// AI bots by purpose next to Googlebot Search, over time: one series each for
-// Googlebot, AI training crawls, AI search crawls and AI user fetches, plus
-// each series' total in the previous period. Bucket size is inlined as an
-// integer literal for the reason given in api/bot-activity.js.
+// AI bots by purpose over time: one series each for AI training crawls, AI
+// search crawls and AI user fetches, plus each series' total in the previous
+// period. Search engines have reports of their own (api/search-bots/). Bucket
+// size is inlined as an integer literal for the reason given in
+// api/bot-activity.js.
 import { handle, json, parseRange, enumParam, firstVisitTs, previousIsComplete } from "../../../lib/api.js";
-import { PURPOSES, familySql, purposeSql } from "../../../../shared/bots.js";
+import { PURPOSES, purposeSql } from "../../../../shared/bots.js";
 
 const BUCKET_MS = { hour: 3600000, day: 86400000 };
 
-const GROUP = `CASE WHEN ${familySql("bot_name")} = 'googlebot' THEN 'googlebot' ELSE ${purposeSql("bot_name")} END`;
+const GROUP = purposeSql("bot_name");
 
-const SERIES = [
-  { key: "googlebot", label: "Googlebot Search" },
-  ...[...PURPOSES].reverse().map((p) => ({ key: p.key, label: p.label })), // training, search, user
-];
+// training, search, user
+const SERIES = [...PURPOSES].reverse().map((p) => ({ key: p.key, label: p.label }));
 
 export const onRequestGet = handle(async ({ env, request }) => {
   const range = parseRange(request);

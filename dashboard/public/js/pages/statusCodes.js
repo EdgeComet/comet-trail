@@ -18,7 +18,9 @@ import { TimeSeriesChart } from "../charts/timeSeriesChart.js";
 import { TableChart } from "../charts/tableChart.js";
 import { logAnalyzerHeader, groups, big } from "./logAnalyzer.js";
 
-const summaryProvider = new Provider("statusSummary", "/api/status-codes/summary");
+// Log Analyzer > Googlebot and > Bingbot show the Breakdown table too
+// (pages/searchBot.js), from this provider and its cache.
+export const summaryProvider = new Provider("statusSummary", "/api/status-codes/summary");
 const trendProvider = new BucketedProvider("statusTrend", "/api/status-codes/trend");
 const urlsProvider = new Provider("statusUrls", "/api/status-codes/urls");
 
@@ -83,7 +85,7 @@ function codeChange(r) {
   return deltaEl(r.requests, r.prev, { good });
 }
 
-const BREAKDOWN_COLUMNS = [
+export const BREAKDOWN_COLUMNS = [
   { label: "Code", nowrap: true, render: (r) => statusBadge(r.status) },
   { label: "Requests", num: true, render: (r) => fmtInt(r.requests) },
   { label: "Share", num: true, render: (r) => fmtPct1(r.share) },

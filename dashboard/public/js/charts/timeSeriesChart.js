@@ -18,6 +18,9 @@ import { bucketEdges, partialBucket, xAxisTicks, tooltipTitle } from "../core/bu
 //   type                 "line" (default) | "bar" (stacked)
 //   summary              true: a footer card per series with total, share, change
 //   describe(key)        optional footer caption per series
+//   good(key)            which way the series' change is healthy in the
+//                        footer, as deltaEl in core/ui.js takes it: "up"
+//                        (default), "down" or "neutral"
 //   markers(data)        optional [{ t, text, cls }] dashed vertical lines, the
 //                        most important first: a line whose label would
 //                        print over an earlier one's is left out
@@ -63,7 +66,7 @@ export class TimeSeriesChart extends Chart {
   render(data) {
     this._data = data;
     this._destroyChart();
-    const { title, token, type, summary, describe, markers, height, empty, hideEmpty, format, y2, gaps } = this.opts;
+    const { title, token, type, summary, describe, good, markers, height, empty, hideEmpty, format, y2, gaps } = this.opts;
     const subtitle = typeof this.opts.subtitle === "function" ? this.opts.subtitle(data) : this.opts.subtitle;
     const actions = this.actions;
     const present = new Set(data.rows.map((r) => r.series));
@@ -92,7 +95,7 @@ export class TimeSeriesChart extends Chart {
 
     const mount = h("div");
     const body = [this._legend(series, colorOf), mount];
-    if (summary) body.push(this._summary(series, totals, grand, data.previous, colorOf, describe));
+    if (summary) body.push(this._summary(series, totals, grand, data.previous, colorOf, describe, good));
     this.el.replaceChildren(card({ title, subtitle, actions }, ...body));
 
     const columns = [["x", ...edges], ...series.map((s) => [s.key, ...counts.get(s.key)])];
@@ -217,7 +220,7 @@ export class TimeSeriesChart extends Chart {
     return legend;
   }
 
-  _summary(series, totals, grand, previous, colorOf, describe) {
+  _summary(series, totals, grand, previous, colorOf, describe, good) {
     return h(
       "div",
       { className: "bot-summary" },
@@ -240,7 +243,7 @@ export class TimeSeriesChart extends Chart {
             h("span", { className: "bot-summary-value", text: fmtInt(total) }),
             h("span", { className: "bot-summary-share", text: `${share.toFixed(1)}%` })
           ),
-          h("div", { className: "bot-summary-delta" }, deltaEl(total, prev)),
+          h("div", { className: "bot-summary-delta" }, deltaEl(total, prev, { good: good ? good(s.key) : "up" })),
           describe ? h("div", { className: "stat-footnote", text: describe(s.key) }) : null
         );
       })

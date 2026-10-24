@@ -1,16 +1,32 @@
 // SQL fragments shared by several endpoints. Each is a constant expression over
 // the crawls columns, so it is safe to interpolate; request values are always
 // bound with ?-params instead.
-import { botNamesSql, isGooglebot, isAiBot } from "../../shared/bots.js";
+import { botNamesSql, isGooglebot, isBingbot, isAiBot } from "../../shared/bots.js";
 
-// The bots behind the "All bots / Googlebot / AI bots" switch on a card
-// (public/js/core/botGroup.js): the condition each group adds to a WHERE
+// The bots behind the "All bots / Googlebot / Bingbot / AI bots" switch on a
+// card (public/js/core/botGroup.js): the condition each group adds to a WHERE
 // clause. Endpoints read the key with enumParam(request, "group", ...).
 export const BOT_GROUP_SQL = {
   all: "1 = 1",
   googlebot: `bot_name IN ${botNamesSql(isGooglebot)}`,
+  bingbot: `bot_name IN ${botNamesSql(isBingbot)}`,
   ai: `bot_name IN ${botNamesSql(isAiBot)}`,
 };
+
+// The search engines with a report of their own (Log Analyzer > Googlebot and
+// > Bingbot, functions/api/search-bots/), by their group in BOT_GROUP_SQL, which
+// holds the engine's Search crawlers: here, every crawler of the engine, for
+// the report's Bot Variants table (shared/bots.js `engine`).
+export const ENGINE_SQL = {
+  googlebot: `bot_name IN ${botNamesSql((b) => b.engine === "google")}`,
+  bingbot: `bot_name IN ${botNamesSql((b) => b.engine === "bing")}`,
+};
+
+// The demand on a page, which ranks the pages a report lists: Googlebot's
+// visits when the report reads every bot (group "all"), and every visit when it
+// reads one group only, as Log Analyzer > Googlebot > Indexability does
+// through ?group=.
+export const demandSql = (group) => (group === "all" ? BOT_GROUP_SQL.googlebot : "1 = 1");
 
 // The status class of a visit, for the Status Codes tab. A NULL status (the
 // origin did not answer) is a class of its own; fetch never ends on a 1xx.
@@ -88,6 +104,24 @@ export const PAGE_BUCKETS = [
   { key: "client_error", label: "4xx client error" },
   { key: "server_error", label: "5xx server error" },
   { key: "other", label: "Other non-200" },
+];
+
+// Where a search bot's request went, after EdgeComet's Crawl Budget
+// Allocation: valuable is an indexable page without a query string, questionable
+// an indexable parameter URL (a filter, sort, page number or internal search,
+// worth crawling only now and then), wasted a page Google or Bing cannot index:
+// canonicalized, noindex, a redirect or an error (PAGE_BUCKET_SQL).
+export const ALLOCATION_SQL = `CASE
+  WHEN ${PAGE_BUCKET_SQL} <> 'indexable' THEN 'wasted'
+  WHEN instr(url, '?') > 0 THEN 'questionable'
+  ELSE 'valuable'
+END`;
+
+// Display order and labels for ALLOCATION_SQL.
+export const ALLOCATIONS = [
+  { key: "valuable", label: "Valuable" },
+  { key: "questionable", label: "Questionable" },
+  { key: "wasted", label: "Wasted" },
 ];
 
 // The path of a URL: everything from the first "/" after scheme://host.

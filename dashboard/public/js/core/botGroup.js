@@ -1,8 +1,8 @@
-// The "All bots / Googlebot / AI bots" switch, for cards that would otherwise
-// blend every bot. AI bots can make half of all requests, so a status code
-// that only training crawlers get (a 429 rate limit) or their slower fetches
-// would read as something Googlebot got. The endpoints behind such cards take
-// ?group=all|googlebot|ai (lib/sql.js BOT_GROUP_SQL).
+// The "All bots / Googlebot / Bingbot / AI bots" switch, for cards that would
+// otherwise blend every bot. AI bots can make half of all requests, so a
+// status code that only training crawlers get (a 429 rate limit) or their
+// slower fetches would read as something Googlebot got. The endpoints behind
+// such cards take ?group=all|googlebot|bingbot|ai (lib/sql.js BOT_GROUP_SQL).
 //
 // The page keeps each card's choice in a module-scope object, so it survives
 // period changes and navigating away and back. The object's initial value is
@@ -17,6 +17,7 @@ import { segmented } from "./ui.js";
 export const BOT_GROUPS = [
   { key: "all", label: "All bots" },
   { key: "googlebot", label: "Googlebot" },
+  { key: "bingbot", label: "Bingbot" },
   { key: "ai", label: "AI bots" },
 ];
 

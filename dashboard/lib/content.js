@@ -325,12 +325,13 @@ function movesOf(tag, now, before, pages, prev) {
     to: m.to,
     direction: ["worse", "lateral", "better"][rank(m)],
     pages: m.list.length,
-    googlebot: sum(m.list, "googlebot"),
+    // Googlebot visits, under the name charts/movesChart.js reads.
+    visits: sum(m.list, "googlebot"),
     ai_user: sum(m.list, "ai_user"),
     sample: [...m.list].sort(byDemand).slice(0, 8).map((p) => p.url),
   }));
   moves.sort(
-    (x, y) => rank(x) - rank(y) || y.googlebot + y.ai_user - (x.googlebot + x.ai_user) || y.pages - x.pages
+    (x, y) => rank(x) - rank(y) || y.visits + y.ai_user - (x.visits + x.ai_user) || y.pages - x.pages
   );
   return {
     moves,

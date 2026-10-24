@@ -61,7 +61,7 @@ export const big = (n) => (n >= 100000 ? fmtCompact(n) : fmtInt(n));
 // enough to fit whole on a card 160px wide (a 1100px window): "Google: 25%
 // canonicalized" is 152px, where "Googlebot:" would cut the verdict. The hint
 // spells it out.
-const WASTE = {
+export const WASTE = {
   canonical: "canonicalized",
   noindex: "noindex",
   redirect: "redirects",
@@ -99,6 +99,7 @@ function metricCards({ current: c, previous: p }) {
       delta: deltaEl(c.crawl_efficiency, p?.crawl_efficiency, { kind: "pp" }),
       foot: efficiencyFoot(c),
       hint: "Share of Googlebot Search requests that received an indexable page. The footnote names where most of the rest went, as a share of all of them: to canonicalized or noindex pages, redirects or errors",
+      href: "/log-analyzer/googlebot/efficiency",
     },
     {
       label: "Median Response",

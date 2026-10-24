@@ -1,5 +1,7 @@
-// GET /api/index-status-trend?from=<unix_ms>&to=<unix_ms>
+// GET /api/index-status-trend?from=<unix_ms>&to=<unix_ms>&group=all|googlebot|bingbot|ai
 // Pages per indexability verdict, day by day, for the Indexation trend chart.
+// `group` reads only those bots' visits (lib/sql.js BOT_GROUP_SQL), as
+// /api/indexation does; every bot by default.
 // Each day counts every page bots fetched in a window as long as the selected
 // period that ends with that day, once, with the verdict of its newest settled
 // visit in the window (lib/sql.js PAGE_BUCKET_SQL and NEWEST_SETTLED_SQL). The
@@ -25,8 +27,8 @@
 // The day size is inlined as an integer literal and the bound numbers are cast
 // to INTEGER: a JS number can bind as REAL, which turns SQLite's integer
 // division into float division and corrupts the day keys (see bot-activity.js).
-import { handle, json, parseRange, firstVisitTs } from "../../lib/api.js";
-import { PAGE_BUCKET_SQL, PAGE_BUCKETS, SETTLED_SQL } from "../../lib/sql.js";
+import { handle, json, parseRange, enumParam, firstVisitTs } from "../../lib/api.js";
+import { BOT_GROUP_SQL, PAGE_BUCKET_SQL, PAGE_BUCKETS, SETTLED_SQL } from "../../lib/sql.js";
 
 const DAY_MS = 86400000;
 
@@ -37,14 +39,14 @@ const DAY_MS = 86400000;
 //   e  a +1 at start and a -1 at stop. CROSS JOIN keeps the visits in the
 //      outer loop: the other order reads the crawls table once per row of
 //      the two-row table.
-const SQL = `
+const sql = (group) => `
   WITH v AS (
     SELECT ${PAGE_BUCKET_SQL} AS bucket, ${SETTLED_SQL} AS settled, ts,
            LEAD(ts) OVER w AS next_visit,
            MIN(CASE WHEN ${SETTLED_SQL} THEN ts END) OVER (w ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) AS next_settled,
            MAX(CASE WHEN ${SETTLED_SQL} THEN ts END) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS prev_settled
       FROM crawls
-     WHERE ts BETWEEN ?1 AND ?2
+     WHERE ts BETWEEN ?1 AND ?2 AND ${BOT_GROUP_SQL[group]}
     WINDOW w AS (PARTITION BY url ORDER BY ts)
   ),
   d AS (
@@ -67,10 +69,11 @@ const SQL = `
 
 export const onRequestGet = handle(async ({ env, request }) => {
   const range = parseRange(request);
+  const group = enumParam(request, "group", Object.keys(BOT_GROUP_SQL), "all");
   const day0 = Math.floor(range.from / DAY_MS) * DAY_MS;
 
   const [{ results }, first] = await Promise.all([
-    env.DB.prepare(SQL).bind(range.from - range.span, range.to, range.span, day0).all(),
+    env.DB.prepare(sql(group)).bind(range.from - range.span, range.to, range.span, day0).all(),
     firstVisitTs(env),
   ]);
 

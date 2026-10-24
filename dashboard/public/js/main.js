@@ -8,6 +8,7 @@ import { renderLogAnalyzer } from "./pages/logAnalyzer.js";
 import { renderStatusCodes } from "./pages/statusCodes.js";
 import { renderLoadingTime } from "./pages/loadingTime.js";
 import { renderAiBots } from "./pages/aiBots.js";
+import { SEARCH_BOT_ROUTES } from "./pages/searchBot.js";
 import { renderIndexation } from "./pages/indexation.js";
 import { renderContent } from "./pages/content.js";
 import { renderChanges } from "./pages/changes.js";
@@ -109,17 +110,23 @@ showSite(site);
 globalRange.minTs = site?.first_ts ?? null;
 
 // A tab of a report keeps the report's sidebar link highlighted: the Log
-// Analyzer tabs sit under Overview, a page's time machine under Pages.
+// Analyzer tabs sit under Overview, the Googlebot and Bingbot tabs under their
+// bot, a page's time machine under Pages.
 const NAV = {
   "/log-analyzer/status-codes": "/log-analyzer",
   "/log-analyzer/loading-time": "/log-analyzer",
+  ...Object.fromEntries(SEARCH_BOT_ROUTES.map((r) => [r.path, r.nav])),
   "/page": "/pages",
 };
 
 if (site && !site.last_ts) {
   // Fresh install: every route shows how to get the first visit recorded.
   const waiting = (outlet, params) => renderWaiting(outlet, params, site);
-  const paths = ["/log-analyzer", "/log-analyzer/status-codes", "/log-analyzer/loading-time", "/ai-bots", "/indexation", "/content", "/changes", "/pages", "/page"];
+  const paths = [
+    "/log-analyzer", "/log-analyzer/status-codes", "/log-analyzer/loading-time", "/ai-bots",
+    ...SEARCH_BOT_ROUTES.map((r) => r.path),
+    "/indexation", "/content", "/changes", "/pages", "/page",
+  ];
   for (const path of paths) {
     router.add(path, waiting, "Waiting for bots", NAV[path] ?? path);
   }
@@ -128,7 +135,9 @@ if (site && !site.last_ts) {
     .add("/log-analyzer", renderLogAnalyzer, "Log Analyzer")
     .add("/log-analyzer/status-codes", renderStatusCodes, "Status Codes", NAV["/log-analyzer/status-codes"])
     .add("/log-analyzer/loading-time", renderLoadingTime, "Loading Time", NAV["/log-analyzer/loading-time"])
-    .add("/ai-bots", renderAiBots, "AI Bots")
+    .add("/ai-bots", renderAiBots, "AI Bots");
+  for (const r of SEARCH_BOT_ROUTES) router.add(r.path, r.render, r.title, r.nav);
+  router
     .add("/indexation", renderIndexation, "Indexation")
     .add("/content", renderContent, "Content")
     .add("/changes", renderChanges, "Changes")

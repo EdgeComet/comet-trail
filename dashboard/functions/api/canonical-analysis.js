@@ -1,6 +1,8 @@
-// GET /api/canonical-analysis?from=<unix_ms>&to=<unix_ms>
+// GET /api/canonical-analysis?from=<unix_ms>&to=<unix_ms>&group=all|googlebot|bingbot|ai
 // Where do the canonicals that point to another URL lead, and are those targets
-// good? Every page whose newest settled visit in the period answered 200
+// good? `group` reads only those bots' visits (lib/sql.js BOT_GROUP_SQL), for
+// pages and targets alike, as /api/indexation does; every bot by default.
+// Every page whose newest settled visit in the period answered 200
 // (NEWEST_SETTLED_SQL; a redirect or an error carries no canonical) is counted
 // by its canonical:
 //   pages     self, missing, and elsewhere: the canonical resolves to another
@@ -11,11 +13,12 @@
 //             URLs point there. A target is judged by its own newest settled
 //             visit in the period: indexable (fine), redirect, error (4xx, 5xx
 //             or another non-200), noindex, canonical (it names yet another
-//             URL: a chain), unknown (no bot fetched it in the period) or
-//             external (another host or protocol, not looked up).
+//             URL: a chain), unknown (none of the bots read fetched it in the
+//             period) or external (another host or protocol, not looked up).
 //   problems  the pages whose target is not indexable, and clean URLs
-//             canonicalized away even to a good target, most Googlebot visits
-//             first: `total`, and the first PROBLEM_ROWS in `rows`.
+//             canonicalized away even to a good target, the most `visits`
+//             first (lib/sql.js demandSql: Googlebot's, or every visit of the
+//             group): `total`, and the first PROBLEM_ROWS in `rows`.
 //
 // Self or elsewhere follows the canonical itself, resolved against the page
 // URL the way shared/seo.js computeIndexStatus does. index_status cannot say it
@@ -28,11 +31,9 @@
 // not the URL itself. URL resolution runs here, over those rows only. The
 // second reads the targets' own visits in the period, through
 // idx_crawls_url_ts.
-import { handle, json, parseRange } from "../../lib/api.js";
-import { PAGE_BUCKET_SQL, NEWEST_SETTLED_SQL } from "../../lib/sql.js";
-import { botNamesSql, isGooglebot } from "../../../shared/bots.js";
+import { handle, json, parseRange, enumParam } from "../../lib/api.js";
+import { BOT_GROUP_SQL, PAGE_BUCKET_SQL, NEWEST_SETTLED_SQL, demandSql } from "../../lib/sql.js";
 
-const GOOGLEBOT = botNamesSql(isGooglebot);
 const PROBLEM_ROWS = 100;
 
 // Target states, in display order. `fine` is the only one that needs no look.
@@ -49,13 +50,13 @@ const STATE_OF_BUCKET = {
 
 // One row per page to check (kind 'check', with its URL and canonical), and one
 // per kind and URL type for the rest (url NULL), with the page count.
-const PAGES_SQL = `
+const pagesSql = (group) => `
   WITH latest AS (
     SELECT url, status, canonical, index_status,
-           SUM(CASE WHEN bot_name IN ${GOOGLEBOT} THEN 1 ELSE 0 END) OVER (PARTITION BY url) AS g,
+           SUM(CASE WHEN ${demandSql(group)} THEN 1 ELSE 0 END) OVER (PARTITION BY url) AS g,
            ROW_NUMBER() OVER (PARTITION BY url ORDER BY ${NEWEST_SETTLED_SQL}) AS rn
       FROM crawls
-     WHERE ts BETWEEN ?1 AND ?2
+     WHERE ts BETWEEN ?1 AND ?2 AND ${BOT_GROUP_SQL[group]}
   ),
   pages AS (
     SELECT url, canonical, g, instr(url, '?') > 0 AS param,
@@ -74,12 +75,12 @@ const PAGES_SQL = `
    GROUP BY kind, param, 3`;
 
 // The newest settled visit in the period of each target (?3: a JSON array).
-const TARGETS_SQL = `
+const targetsSql = (group) => `
   SELECT url, ${PAGE_BUCKET_SQL} AS bucket FROM (
     SELECT url, status, index_status,
            ROW_NUMBER() OVER (PARTITION BY url ORDER BY ${NEWEST_SETTLED_SQL}) AS rn
       FROM crawls
-     WHERE url IN (SELECT value FROM json_each(?3)) AND ts BETWEEN ?1 AND ?2)
+     WHERE url IN (SELECT value FROM json_each(?3)) AND ts BETWEEN ?1 AND ?2 AND ${BOT_GROUP_SQL[group]})
    WHERE rn = 1`;
 
 // scheme://host[:port] of a normalized http(s) URL, as lib/sql.js PATH_SQL
@@ -108,7 +109,8 @@ function resolver() {
 
 export const onRequestGet = handle(async ({ env, request }) => {
   const { from, to } = parseRange(request);
-  const { results } = await env.DB.prepare(PAGES_SQL).bind(from, to).all();
+  const group = enumParam(request, "group", Object.keys(BOT_GROUP_SQL), "all");
+  const { results } = await env.DB.prepare(pagesSql(group)).bind(from, to).all();
 
   const resolve = resolver();
   const count = () => ({ param: 0, clean: 0 });
@@ -121,7 +123,7 @@ export const onRequestGet = handle(async ({ env, request }) => {
     else if (!href || href === r.url) pages.self += r.pages;
     else {
       pages.elsewhere[r.param ? "param" : "clean"] += 1;
-      elsewhere.push({ url: r.url, param: Boolean(r.param), target: href, googlebot: r.g ?? 0 });
+      elsewhere.push({ url: r.url, param: Boolean(r.param), target: href, visits: r.g ?? 0 });
     }
   }
 
@@ -130,7 +132,7 @@ export const onRequestGet = handle(async ({ env, request }) => {
   const local = [...new Set(elsewhere.filter((p) => originOf(p.target) === originOf(p.url)).map((p) => p.target))];
   const bucketOf = new Map();
   if (local.length) {
-    const found = await env.DB.prepare(TARGETS_SQL).bind(from, to, JSON.stringify(local)).all();
+    const found = await env.DB.prepare(targetsSql(group)).bind(from, to, JSON.stringify(local)).all();
     for (const t of found.results ?? []) bucketOf.set(t.url, t.bucket);
   }
 
@@ -142,7 +144,7 @@ export const onRequestGet = handle(async ({ env, request }) => {
     targets[p.state][p.param ? "param" : "clean"] += 1;
     if (p.state !== "indexable" || !p.param) problems.push(p);
   }
-  problems.sort((a, b) => b.googlebot - a.googlebot || (a.url < b.url ? -1 : 1));
+  problems.sort((a, b) => b.visits - a.visits || (a.url < b.url ? -1 : 1));
 
   return json({
     pages,

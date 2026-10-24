@@ -1,5 +1,6 @@
-// Log Analyzer > AI Bots - why AI bots came, what they read, and how that
-// compares with Googlebot.
+// Log Analyzer > AI Bots - why AI bots came, what they read, and which missing
+// pages assistants still ask for. AI bots only: Googlebot and Bingbot have
+// reports of their own (pages/searchBot.js).
 //
 // AI bots come for three reasons (shared/bots.js PURPOSES): to fetch a page
 // live while a person asks an assistant, to build an AI search index, or to
@@ -21,14 +22,12 @@ const breakdownProvider = new Provider("aiBreakdown", "/api/ai/breakdown");
 const pagesProvider = new Provider("aiPages", "/api/ai/pages");
 
 const GROUP_TOKENS = {
-  googlebot: "--bot-googlebot",
   training: "--purpose-training",
   search: "--purpose-search",
   user: "--purpose-user",
 };
 
 const GROUP_NOTES = {
-  googlebot: "Google's search crawler",
   training: "collecting model training data",
   search: "building AI search indexes",
   user: "fetched live for a person",
@@ -119,29 +118,28 @@ class ProvidersChart extends Chart {
   }
 }
 
-// --- Where each kind of bot reads: share of its requests per section ----------
+// --- Where AI bots read: share of each purpose's requests per section ---------
 
 class SectionsChart extends Chart {
   render(d) {
-    const title = "Where each bot reads";
+    const title = "Where AI bots read";
     if (!d.sections.length) {
-      this.el.replaceChildren(card({ title }, emptyMessage("No search or AI bot visits in this period.")));
+      this.el.replaceChildren(card({ title }, emptyMessage("No AI bot visited in this period.")));
       return;
     }
-    const groups = ["googlebot", "training", "search", "user"];
+    const groups = ["training", "search", "user"];
     const totals = Object.fromEntries(groups.map((g) => [g, d.sections.reduce((a, s) => a + s[g], 0)]));
     const cell = (s, g) => heatCell(s[g], totals[g], GROUP_TOKENS[g]);
     const table = dataTable(
       [
         { label: "Section", nowrap: true, render: (s) => h("span", { className: "mono", text: s.section }) },
-        { label: "Googlebot", render: (s) => cell(s, "googlebot") },
         { label: "Training", render: (s) => cell(s, "training") },
         { label: "AI search", render: (s) => cell(s, "search") },
         { label: "User fetches", render: (s) => cell(s, "user") },
       ],
       d.sections
     );
-    this.el.replaceChildren(card({ title, subtitle: "share of each group's requests by section", flush: true }, table));
+    this.el.replaceChildren(card({ title, subtitle: "share of each purpose's requests by section", flush: true }, table));
   }
 }
 
@@ -166,7 +164,7 @@ export function renderAiBots(outlet) {
   outlet.append(
     reportHeader({
       title: "AI Bots",
-      subtitle: "Why AI bots came, what they read, and how that compares with Googlebot.",
+      subtitle: "Why AI bots came, what they read, and which missing pages assistants still ask for.",
     })
   );
 
@@ -182,12 +180,12 @@ export function renderAiBots(outlet) {
   dashboard.add(new StatCardsChart(summary, summaryProvider, summaryCards));
   dashboard.add(
     new TimeSeriesChart(trend, trendProvider, {
-      title: "AI bots vs Googlebot",
-      subtitle: "requests by purpose",
+      title: "AI bots by purpose",
+      subtitle: "requests per purpose",
       token: (key) => GROUP_TOKENS[key],
       summary: true,
       describe: (key) => GROUP_NOTES[key],
-      empty: "No Googlebot or AI bot visits in this period.",
+      empty: "No AI bot visited in this period.",
     })
   );
   dashboard.add(new ProvidersChart(providers, breakdownProvider));
