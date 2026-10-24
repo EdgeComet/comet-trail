@@ -10,7 +10,7 @@ import { Dashboard } from "../core/registry.js";
 import { Chart } from "../core/chart.js";
 import { Provider, BucketedProvider, derive } from "../core/provider.js";
 import { reportHeader } from "../core/report.js";
-import { h, card, cssVar, dataTable, emptyMessage, statusBadge, urlCell, deltaEl, fmtInt, fmtCompact, fmtPct1, fmtAgo, fmtDateTime } from "../core/ui.js";
+import { h, card, cssVar, dataTable, emptyMessage, statusBadge, urlCell, heatCell, deltaEl, fmtInt, fmtCompact, fmtPct1, fmtAgo, fmtDateTime } from "../core/ui.js";
 import { StatCardsChart } from "../charts/statCardsChart.js";
 import { TimeSeriesChart } from "../charts/timeSeriesChart.js";
 import { TableChart } from "../charts/tableChart.js";
@@ -130,15 +130,7 @@ class SectionsChart extends Chart {
     }
     const groups = ["googlebot", "training", "search", "user"];
     const totals = Object.fromEntries(groups.map((g) => [g, d.sections.reduce((a, s) => a + s[g], 0)]));
-    const cell = (s, g) => {
-      const share = pct(s[g], totals[g]);
-      return h(
-        "div",
-        { className: "heat", title: `${fmtInt(s[g])} requests` },
-        h("span", { className: "heat-fill", style: { width: `${share}%`, background: cssVar(GROUP_TOKENS[g]) } }),
-        h("span", { className: "heat-value", text: s[g] ? fmtPct1(share) : "-" })
-      );
-    };
+    const cell = (s, g) => heatCell(s[g], totals[g], GROUP_TOKENS[g]);
     const table = dataTable(
       [
         { label: "Section", nowrap: true, render: (s) => h("span", { className: "mono", text: s.section }) },

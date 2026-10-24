@@ -3,13 +3,16 @@
 // first. `filter` names the figure:
 //   verdict:<verdict>   a verdict of the tag (missing, duplicated, ...)
 //   cluster:<id>        one duplicate group of the tag
+//   chars:over          pages whose tag runs past what search results usually
+//                       show (title or description only)
 //   align:<bucket>      a title vs H1 bucket
 //   check:<check>       placeholder or soft_404
 // The same lib/content.js rules decide membership as decided the figure.
-// Each row carries the page's three tags, the word count of the selected tag
-// and, for the placeholder check, the tag that holds the placeholder.
+// Each row carries the page's three tags, the word and character counts of the
+// selected tag and, for the placeholder check, the tag that holds the
+// placeholder.
 import { handle, json, parseRange, intParam, enumParam } from "../../lib/api.js";
-import { TAGS, loadPages, listPages, wordCount, placeholderIn } from "../../lib/content.js";
+import { TAGS, loadPages, listPages, wordCount, charCount, placeholderIn } from "../../lib/content.js";
 
 export const onRequestGet = handle(async ({ env, request }) => {
   const range = parseRange(request);
@@ -33,6 +36,7 @@ export const onRequestGet = handle(async ({ env, request }) => {
       description: p.description,
       h1s: p.h1s,
       words: wordCount(TAGS[tag].read(p)),
+      chars: charCount(TAGS[tag].read(p)),
       googlebot: p.googlebot,
       ai_user: p.ai_user,
       placeholder: placeholderIn(p),

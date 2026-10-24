@@ -49,11 +49,10 @@ class PagesTable extends Chart {
 
   // A new period starts back on the first page.
   load(from, to) {
-    if (this._range && (this._range.from !== from || this._range.to !== to)) {
+    if (this.range && (this.range.from !== from || this.range.to !== to)) {
       state.offset = 0;
       this.params = params();
     }
-    this._range = { from, to };
     return super.load(from, to);
   }
 

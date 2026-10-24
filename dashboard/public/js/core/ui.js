@@ -69,11 +69,6 @@ export function card({ title, subtitle, link, actions, flush = false } = {}, ...
   );
 }
 
-// Titled card used by the bar-list charts: card > header + padded body.
-export function titledCard(title, body) {
-  return card({ title }, body);
-}
-
 // --- Formatters -------------------------------------------------------------
 
 const NUM = new Intl.NumberFormat("en-US");
@@ -93,11 +88,28 @@ export function fmtPct(p) {
   return p > 0 && p < 1 ? "<1%" : `${Math.round(p)}%`;
 }
 
-export const fmtPct1 = (p) => `${(Number(p) || 0).toFixed(1)}%`;
+// One decimal; a small-but-nonzero share reads "<0.1%", as fmtPct does.
+export function fmtPct1(p) {
+  const v = Number(p) || 0;
+  return v > 0 && v < 0.05 ? "<0.1%" : `${v.toFixed(1)}%`;
+}
 
+// A table cell: the share n of `of` with a bar behind it in the color held by
+// the CSS variable `token`; the hover gives the request count.
+export function heatCell(n, of, token) {
+  const share = of ? (n / of) * 100 : 0;
+  return h(
+    "div",
+    { className: "heat", title: `${fmtInt(n)} requests` },
+    h("span", { className: "heat-fill", style: { width: `${share}%`, background: cssVar(token) } }),
+    h("span", { className: "heat-value", text: n ? fmtPct1(share) : "-" })
+  );
+}
+
+// 471 -> "471ms", 1452 -> "1.5s", 2000 -> "2s", 12400 -> "12s".
 export function fmtMs(ms) {
   const v = Number(ms) || 0;
-  return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}s` : `${Math.round(v)}ms`;
+  return v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, "")}s` : `${Math.round(v)}ms`;
 }
 
 const DATE = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -158,10 +170,11 @@ export function deltaEl(cur, prev, { kind = "pct", good = "up" } = {}) {
 
 // A KPI tile: label (+ optional "View →" link), big value with its change, and
 // a one-line footnote (cut with an ellipsis when it runs long, full text on hover).
-export function statCard({ label, value, delta = null, foot = "", href = null }) {
+// `hint` is an optional definition, shown on hover over the rest of the card.
+export function statCard({ label, value, delta = null, foot = "", href = null, hint = null }) {
   return h(
     "div",
-    { className: "stat-card" },
+    { className: "stat-card", title: hint },
     h(
       "div",
       { className: "stat-head" },
@@ -171,6 +184,30 @@ export function statCard({ label, value, delta = null, foot = "", href = null })
     h("div", { className: "stat-value-row" }, h("span", { className: "stat-value", text: value }), delta),
     foot ? h("div", { className: "stat-footnote", title: foot, text: foot }) : null
   );
+}
+
+// --- Segmented switch ---------------------------------------------------------
+
+// A switch for a card header, after EdgeComet's: one button per option, the
+// chosen one on a pill. onChange(key) runs when the choice changes.
+//   segmented({ options: [{ key, label }], value, label, onChange })
+export function segmented({ options, value, label, onChange }) {
+  const buttons = options.map((o) =>
+    h("button", { type: "button", className: "segmented-btn", text: o.label, on: { click: () => choose(o.key) } })
+  );
+  const sync = () =>
+    options.forEach((o, i) => {
+      buttons[i].classList.toggle("active", o.key === value);
+      buttons[i].setAttribute("aria-pressed", String(o.key === value));
+    });
+  function choose(key) {
+    if (key === value) return;
+    value = key;
+    sync();
+    onChange(key);
+  }
+  sync();
+  return h("div", { className: "segmented", role: "group", "aria-label": label }, buttons);
 }
 
 // --- Badges -----------------------------------------------------------------
@@ -219,7 +256,8 @@ export function urlCell(url, sub = null) {
 // --- Tables -----------------------------------------------------------------
 
 // columns: [{ label, num?, render(row) -> Node|string, sortKey? }]
-export function dataTable(columns, rows, { sort = null, onSort = null } = {}) {
+// `compact` narrows the space between columns, for a table in a narrow card.
+export function dataTable(columns, rows, { sort = null, onSort = null, compact = false } = {}) {
   const head = h(
     "tr",
     {},
@@ -245,7 +283,11 @@ export function dataTable(columns, rows, { sort = null, onSort = null } = {}) {
       })
     )
   );
-  return h("div", { className: "table-wrap" }, h("table", { className: "data-table" }, h("thead", {}, head), h("tbody", {}, body)));
+  return h(
+    "div",
+    { className: "table-wrap" },
+    h("table", { className: compact ? "data-table data-table-compact" : "data-table" }, h("thead", {}, head), h("tbody", {}, body))
+  );
 }
 
 // A "nothing here yet" card. `items` is an optional list of steps.

@@ -60,6 +60,21 @@ function verdictLabel(key, limits) {
 
 const verdictBadge = (key) => badge(VERDICTS[key]?.label ?? key, VERDICTS[key]?.variant ?? "");
 
+// Pages whose title or description runs past what search results usually
+// show. Information beside the verdicts: a page keeps the verdict its words
+// earned, and the verdicts still add up to the graded pages.
+function charsNote(tag, chars) {
+  return {
+    ...chars,
+    key: "chars",
+    glyph: "i",
+    tone: "info",
+    label: `Over ${chars.limit} characters`,
+    hint: `search results usually show about ${chars.limit}, so the end may be cut. For information only: each page keeps its verdict from its word count`,
+    spec: { tag, filter: "chars:over", columns: tagColumns(tag) },
+  };
+}
+
 // Title vs H1 buckets, in order of overlap. Only "unrelated" is a problem; a
 // title that repeats its H1 word for word is a missed chance, not a defect.
 const ALIGN = {
@@ -129,6 +144,7 @@ function tagColumns(tag) {
     { label: TABS[tag].label, render: (r) => textCell(TAG_TEXT[tag](r)) },
     tag === "h1" ? { label: "H1s", num: true, render: (r) => num(r.h1s.length) } : null,
     { label: "Words", num: true, render: (r) => num(r.words) },
+    { label: "Characters", num: true, render: (r) => num(r.chars) },
     ...DEMAND_COLS,
   ].filter(Boolean);
 }
@@ -209,7 +225,6 @@ class DrillChart extends Chart {
 
   load(from, to) {
     if (this.range && (this.range.from !== from || this.range.to !== to)) this.list = null;
-    this.range = { from, to };
     return super.load(from, to);
   }
 
@@ -225,14 +240,39 @@ class DrillChart extends Chart {
   }
 }
 
+// A row that opens the pages behind a figure: a glyph, a label with its hint,
+// the page count and the demand on those pages, and the list when open. Used
+// by the content checks and by the notes under a health bar.
+//   tone   "worse" (a problem), "better" (none found) or "info" (information)
+function figureRow(chart, { key, glyph, tone, label, hint, pages, googlebot, ai_user, spec }) {
+  const isOpen = chart.open === key;
+  const head = h(
+    "button",
+    {
+      type: "button",
+      className: `move move-${tone}${isOpen ? " is-open" : ""}`,
+      "aria-expanded": String(isOpen),
+      disabled: !pages,
+      on: { click: () => chart.toggle(key) },
+    },
+    h("span", { className: "move-dir", text: glyph }),
+    h("span", { className: "move-path" }, h("strong", { text: label }), h("span", { className: "muted", text: hint })),
+    h("span", { className: "move-pages", text: `${fmtInt(pages)} page${pages === 1 ? "" : "s"}` }),
+    pages ? h("span", { className: "move-demand", text: `${fmtInt(googlebot)} Googlebot visits · ${fmtInt(ai_user)} AI user fetches` }) : null
+  );
+  return h("div", {}, head, isOpen ? h("div", { className: "check-drill" }, chart.listFor(key, spec)) : null);
+}
+
 // --- Segmented bar (verdicts, title vs H1) -----------------------------------
 
 const demandLine = (s) => `${fmtInt(s.googlebot)} Googlebot · ${fmtInt(s.ai_user)} AI fetches`;
 
 // A titled card with one proportional bar over a legend. Each legend item
 // opens the pages in its segment.
-//   new SegmentsChart(el, provider, { title, subtitle, segments(d), spec(key), empty })
+//   new SegmentsChart(el, provider, { title, subtitle, segments(d), spec(key), notes(d)?, empty })
 // segments(d) -> [{ key, label, color, hint, pages, googlebot, ai_user }]
+// notes(d) -> figureRow() configs for figures under the legend that are
+// information rather than a segment, so the segments still add up.
 class SegmentsChart extends DrillChart {
   constructor(el, provider, opts) {
     super(el, provider);
@@ -241,14 +281,15 @@ class SegmentsChart extends DrillChart {
 
   render(d) {
     this.data = d;
-    const { title, subtitle, segments, spec, empty } = this.opts;
+    const { title, subtitle, segments, spec, notes, empty } = this.opts;
     const segs = segments(d);
+    const extra = notes ? notes(d) : [];
     const total = segs.reduce((a, s) => a + s.pages, 0);
     if (!total) {
       this.el.replaceChildren(card({ title, subtitle }, emptyMessage(empty)));
       return;
     }
-    if (this.open && !segs.some((s) => s.key === this.open && s.pages)) this.open = null;
+    if (this.open && ![...segs, ...extra].some((s) => s.key === this.open && s.pages)) this.open = null;
 
     const bar = h(
       "div",
@@ -289,8 +330,9 @@ class SegmentsChart extends DrillChart {
         )
       )
     );
-    const drill = this.open ? this.listFor(this.open, spec(this.open)) : null;
-    this.el.replaceChildren(card({ title, subtitle }, bar, legend, drill));
+    const drill = segs.some((s) => s.key === this.open) ? this.listFor(this.open, spec(this.open)) : null;
+    const rows = extra.length ? h("div", { className: "moves analysis-notes" }, extra.map((n) => figureRow(this, n))) : null;
+    this.el.replaceChildren(card({ title, subtitle }, bar, legend, drill, rows));
   }
 }
 
@@ -401,28 +443,15 @@ class ChecksChart extends DrillChart {
   render(checks) {
     this.data = checks;
     if (this.open && !checks.some((c) => c.key === this.open && c.pages)) this.open = null;
-    const rows = checks.map((c) => {
-      const meta = CHECKS[c.key];
-      const isOpen = this.open === c.key;
-      const head = h(
-        "button",
-        {
-          type: "button",
-          className: `move ${c.pages ? "move-worse" : "move-better"}${isOpen ? " is-open" : ""}`,
-          "aria-expanded": String(isOpen),
-          disabled: !c.pages,
-          on: { click: () => this.toggle(c.key) },
-        },
-        h("span", { className: "move-dir", text: c.pages ? "!" : "✓" }),
-        h("span", { className: "move-path" }, h("strong", { text: meta.label }), h("span", { className: "muted", text: meta.hint })),
-        h("span", { className: "move-pages", text: `${fmtInt(c.pages)} page${c.pages === 1 ? "" : "s"}` }),
-        c.pages ? h("span", { className: "move-demand", text: `${fmtInt(c.googlebot)} Googlebot visits · ${fmtInt(c.ai_user)} AI user fetches` }) : null
-      );
-      const drill = isOpen
-        ? h("div", { className: "check-drill" }, this.listFor(c.key, { tag: "title", filter: `check:${c.key}`, columns: CHECK_COLUMNS[c.key] }))
-        : null;
-      return h("div", {}, head, drill);
-    });
+    const rows = checks.map((c) =>
+      figureRow(this, {
+        ...c,
+        ...CHECKS[c.key],
+        glyph: c.pages ? "!" : "✓",
+        tone: c.pages ? "worse" : "better",
+        spec: { tag: "title", filter: `check:${c.key}`, columns: CHECK_COLUMNS[c.key] },
+      })
+    );
     this.el.replaceChildren(card({ title: "Content checks", subtitle: "every indexable page, whichever tab is open" }, h("div", { className: "moves" }, rows)));
   }
 }
@@ -530,6 +559,7 @@ export function renderContent(outlet, params) {
           hint: verdictHint(v.key, tag, t.limits),
         })),
       spec: (key) => ({ tag, filter: `verdict:${key}`, columns: tagColumns(tag) }),
+      notes: (t) => (t.chars ? [charsNote(tag, t.chars)] : []),
     })
   );
   dashboard.add(new ClustersChart(clusters, tagData, tag));

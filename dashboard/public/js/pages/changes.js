@@ -2,18 +2,19 @@
 // first visit that showed it. Nobody has to log a release: a template change,
 // a plugin update or a hotfix shows up here because a bot received it.
 //
-// One /api/changes response feeds every card through derive().
+// One /api/changes response feeds every card through derive(). The provider
+// is shared with the change markers on other reports (core/changeMarkers.js),
+// so coming here after them costs no second run of the query.
 import { globalRange } from "../core/dateRange.js";
 import { Dashboard } from "../core/registry.js";
 import { Chart } from "../core/chart.js";
-import { Provider, derive } from "../core/provider.js";
+import { derive } from "../core/provider.js";
 import { reportHeader } from "../core/report.js";
 import { h, card, dataTable, emptyMessage, urlCell, fmtInt, fmtDate, fmtDay, fmtDateTime, fmtAgo } from "../core/ui.js";
 import { diffEl } from "../core/diff.js";
 import { StatCardsChart } from "../charts/statCardsChart.js";
 import { TimeSeriesChart } from "../charts/timeSeriesChart.js";
-
-const provider = new Provider("changes", "/api/changes");
+import { changesProvider as provider } from "../providers/changesProvider.js";
 
 // Chart colors per field.
 const FIELD_TOKENS = {
@@ -50,6 +51,10 @@ function summaryCards(d) {
 
 // --- Change events: one field changing on many pages within days -------------
 
+// The response holds the biggest events of each field, for the change markers;
+// the card lists the biggest of them all, newest first.
+const MAX_EVENTS = 8;
+
 class EventsChart extends Chart {
   render(d) {
     const title = "Change events";
@@ -58,7 +63,8 @@ class EventsChart extends Chart {
       this.el.replaceChildren(card({ title, subtitle }, emptyMessage("No change reached several pages at once in this period.")));
       return;
     }
-    const items = d.events.map((e) => {
+    const biggest = [...d.events].sort((a, b) => b.pages - a.pages).slice(0, MAX_EVENTS).sort((a, b) => b.start - a.start);
+    const items = biggest.map((e) => {
       const when = fmtDay(e.start) === fmtDay(e.end) ? fmtDate(e.start) : `${fmtDay(e.start)} - ${fmtDate(e.end)}`;
       return h(
         "div",

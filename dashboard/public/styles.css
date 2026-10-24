@@ -503,6 +503,21 @@ button {
   color: var(--text-secondary);
 }
 
+/* A lead line with a control for the whole view at its end (the bot switch of
+   a Log Analyzer tab). The control drops under the text on a narrow screen. */
+.report-lead-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0 0 20px;
+}
+
+.report-lead-row .report-lead {
+  margin: 0;
+}
+
 /* Period: one bordered box, preset cells split by hairlines, then the dates. */
 .period {
   display: inline-flex;
@@ -841,6 +856,30 @@ button {
   min-width: 0;
 }
 
+/* Cards side by side end on one line, however short one of them is, and a
+   footer stays at the bottom of its card. */
+.chart-pair > * > .card,
+.grid-2 > * > .card,
+.grid-2-1 > * > .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chart-pair > * > .card > :last-child,
+.grid-2 > * > .card > :last-child,
+.grid-2-1 > * > .card > :last-child {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.chart-pair > * > .card > :last-child > .card-footer:last-child,
+.grid-2 > * > .card > :last-child > .card-footer:last-child,
+.grid-2-1 > * > .card > :last-child > .card-footer:last-child {
+  margin-top: auto;
+}
+
 .grid-2-1 {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
@@ -912,11 +951,13 @@ button {
 }
 
 .stat-value {
+  min-width: 0;
   font-size: 32px;
   font-weight: 700;
   line-height: 1;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere; /* a long section name (Slowest Section) wraps */
 }
 
 /* Change against the previous period. The arrow gives the direction; the
@@ -1402,6 +1443,11 @@ button {
   overflow: hidden;
 }
 
+/* Notes under a health bar's legend: figures beside the verdicts. */
+.analysis-notes {
+  margin-top: 24px;
+}
+
 .moves-foot {
   margin: 14px 0 0;
   font-size: 12px;
@@ -1528,6 +1574,14 @@ button {
   border-bottom: 1px solid var(--border-light);
 }
 
+/* A table in a narrow card (the Breakdown beside a chart): closer columns. The
+   outer cells keep their 16px below. */
+.data-table.data-table-compact th,
+.data-table.data-table-compact td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 .data-table th:first-child,
 .data-table td:first-child {
   padding-left: 16px;
@@ -1586,10 +1640,30 @@ button {
 }
 
 /* In a table the URL column takes whatever width the other columns leave,
-   and truncates in it, so a narrow card never scrolls sideways. */
+   and truncates in it. It keeps room for a readable path: on a phone the
+   table scrolls sideways inside its card rather than cut every path to a
+   few letters. */
 .data-table td:has(> .cell-url) {
   width: 100%;
+  min-width: 140px;
   max-width: 0;
+}
+
+/* Beside a column of wrapping text (a -/+ change, a title), the URL column
+   keeps about a third of that width and leaves the rest to the text. Taking
+   all of it would squeeze the text to its narrowest word: a long canonical
+   one letter per line, a title cut after a few words. */
+.data-table:has(td > .diff, td > .cell-text) td:has(> .cell-url) {
+  width: 35%;
+}
+
+.data-table td:has(> .diff) {
+  width: 65%;
+  min-width: 200px;
+}
+
+.data-table td > .cell-text {
+  max-width: none;
 }
 
 .data-table td > .cell-url {
@@ -1707,6 +1781,54 @@ button {
   color: var(--primary-text);
 }
 
+/* Segmented switch in a card header (core/ui.js segmented()), after
+   EdgeComet's: options split by whitespace, the chosen one on a pill in the
+   selected chip's colors. The pill is painted outside the button's line box,
+   so the header keeps its height. */
+.segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.segmented-btn {
+  position: relative;
+  z-index: 0;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.segmented-btn:hover {
+  color: var(--text-dark);
+}
+
+.segmented-btn.active {
+  color: var(--primary-text);
+}
+
+.segmented-btn.active::after {
+  content: "";
+  position: absolute;
+  inset: -4px -2px;
+  z-index: -1;
+  background: var(--active-bg);
+  border-radius: 999px;
+}
+
+/* A header with a switch wraps it under the title when the card is narrow. */
+.card-header:has(> .segmented) {
+  flex-wrap: wrap;
+}
+
 .num-strong {
   font-weight: 700;
   color: var(--primary-text);
@@ -1754,6 +1876,7 @@ button {
 
 .move-worse .move-dir { color: var(--error-text); }
 .move-better .move-dir { color: var(--success-text); }
+.move-info .move-dir { color: var(--info-text); }
 
 .move-path {
   grid-area: path;
@@ -1802,7 +1925,7 @@ button {
 /* Change events (Changes page). */
 .events {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -2049,6 +2172,12 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+/* What a canonical target's state means, beside its badge. */
+.target-hint {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .callout {
@@ -2400,10 +2529,16 @@ button {
   stroke-dasharray: 4 3;
 }
 
+/* A halo in the card's color keeps a label readable where a series line or a
+   bar runs under it. */
 .bb-xgrid-line text {
   fill: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--bg-white);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 
 .bb-xgrid-line.marker-bad line { stroke: var(--red); }

@@ -11,6 +11,9 @@
 //     category's title.
 //   - Lengths count words, splitting on everything that is not a letter or a
 //     digit, so the "|" and "-" that titles are glued with are not words.
+//   - Characters are counted beside the words, as information only: a title
+//     over 60 characters or a description over 160 runs past what search
+//     results usually show, but its verdict still comes from its words.
 //   - A value is duplicated when two or more graded pages carry it, compared
 //     trimmed, lowercased and with runs of whitespace collapsed.
 //   - Each page gets one verdict per tag: the first of VERDICTS that applies, so
@@ -37,12 +40,13 @@ const SNAPSHOT_SQL = `
 
 // Per tag: how to read it, the word lines (EdgeComet's: a title or H1 of 16+
 // words is a sentence or a keyword stack, a description of 50+ words is about
-// twice what a result page shows, a title of 1-2 words names no page), and the
-// fields that could tell two pages with the same value apart, in order of
-// preference.
+// twice what a result page shows, a title of 1-2 words names no page), the
+// characters search results usually show (`chars`, no verdict depends on it),
+// and the fields that could tell two pages with the same value apart, in
+// order of preference.
 export const TAGS = {
-  title: { read: (p) => p.title, long: 16, short: 2, by: ["h1", "slug"] },
-  description: { read: (p) => p.description, long: 50, by: ["h1", "title", "slug"] },
+  title: { read: (p) => p.title, long: 16, short: 2, chars: 60, by: ["h1", "slug"] },
+  description: { read: (p) => p.description, long: 50, chars: 160, by: ["h1", "title", "slug"] },
   h1: { read: (p) => p.h1, long: 16, by: ["title", "slug"], multiple: true },
 };
 
@@ -141,6 +145,13 @@ export async function loadPages(env, from, to) {
 // --- Grading ------------------------------------------------------------------
 
 export const wordCount = (s) => (s ? s.match(/[\p{L}\p{N}]+/gu)?.length ?? 0 : 0);
+// String length only, so counting every graded page costs next to no CPU.
+export const charCount = (s) => (s ? s.length : 0);
+// Pages whose value runs past the characters search results usually show.
+export function overChars(tag) {
+  const { read, chars } = TAGS[tag];
+  return (p) => charCount(read(p)) > chars;
+}
 // Values arrive trimmed (text() above); the whitespace regex only runs on the
 // few that hold a double space, a tab or a line break.
 const norm = (s) => (/\s\s|[^\S ]/.test(s) ? s.replace(/\s+/g, " ") : s).toLowerCase();
@@ -375,7 +386,9 @@ function groupBy(pages, keyOf, keys) {
 }
 
 // Everything one tab draws. `prev` is the previous period's pages; `partial`
-// withholds the card deltas when that period is not fully recorded.
+// withholds the card deltas when that period is not fully recorded. `chars`
+// counts the pages over the character line apart from the verdicts, which
+// still add up to the graded pages.
 export function summarizeTag(tag, pages, prev, partial) {
   const now = gradeTag(pages, tag);
   const before = gradeTag(prev, tag);
@@ -385,6 +398,7 @@ export function summarizeTag(tag, pages, prev, partial) {
     cards: cardsOf(tag, pages, now),
     previous: partial ? null : cardsOf(tag, prev, before),
     verdicts: groupBy(pages, (p) => now.verdict.get(p.url), verdictsOf(tag)),
+    chars: def.chars ? { limit: def.chars, ...demandOf(pages.filter(overChars(tag))) } : null,
     clusters: clusterRows(tag, now.dups),
     moves: { partial, ...movesOf(tag, now, before, pages, prev) },
   };
@@ -402,7 +416,7 @@ export function summarizeChecks(pages) {
 }
 
 // The predicate behind one figure: "verdict:<key>", "cluster:<id>",
-// "align:<bucket>" or "check:<key>".
+// "chars:over", "align:<bucket>" or "check:<key>".
 export function pageFilter(pages, tag, filter) {
   const at = filter.indexOf(":");
   const kind = at > 0 ? filter.slice(0, at) : "";
@@ -417,10 +431,11 @@ export function pageFilter(pages, tag, filter) {
     const urls = new Set(group ? group[1].map((p) => p.url) : []);
     return (p) => urls.has(p.url);
   }
+  if (kind === "chars" && key === "over" && TAGS[tag].chars) return overChars(tag);
   if (kind === "align" && ALIGN_BUCKETS.includes(key)) return (p) => alignmentOf(p) === key;
   if (kind === "check" && key === "placeholder") return (p) => Boolean(placeholderIn(p));
   if (kind === "check" && key === "soft_404") return readsNotFound;
-  throw new HttpError(400, "filter must be verdict:<verdict>, cluster:<id>, align:<bucket> or check:<check>");
+  throw new HttpError(400, "filter must be verdict:<verdict>, cluster:<id>, chars:over, align:<bucket> or check:<check>");
 }
 
 export function listPages(pages, tag, filter) {

@@ -43,8 +43,9 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const isStableStatus = (s) => s !== null && s !== undefined && s !== 429 && s < 500;
 
 // Sentiment of a change, for coloring markers: losing indexability or a 2xx is
-// bad, regaining it is good, anything else is neutral.
-function sentiment(field, before, after) {
+// bad, regaining it is good, anything else is neutral. /api/changes judges
+// its events by the same rule, with the visits' index_status as the "bucket".
+export function sentiment(field, before, after) {
   if (field === "bucket") return after === "indexable" ? "good" : before === "indexable" ? "bad" : "neutral";
   if (field === "status") {
     const ok = (s) => s !== null && s >= 200 && s < 300;

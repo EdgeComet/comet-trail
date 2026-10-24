@@ -56,6 +56,10 @@
 //                  (a soft 404) instead of a 404 or a redirect.
 //   S11 D-10       An autumn-sale banner replaces the H1 on the jackets listings:
 //                  the title says "Jackets", the H1 talks about a sale.
+//   S12 D-7        The trekking poles category moves from /c/trekking-poles to
+//                  /c/hiking-poles, and the old URL answers 301. Its filter and
+//                  sort URLs keep the old URL as their canonical: a canonical
+//                  that points to a redirect.
 //
 // Hero URLs for the demo:
 //   https://gearshop.example/p/ridgeline-gtx-hiking-boot   (S1, S2, S7: time machine)
@@ -63,6 +67,7 @@
 //   https://gearshop.example/guides/how-to-choose-a-tent   (S6: AI favourite, H1 removed)
 //   https://gearshop.example/p/cascade-2p-ultralight-tent  (S5: 200 -> 404 -> 301)
 //   https://gearshop.example/c/headlamps                   (S8: title template bug)
+//   https://gearshop.example/c/trekking-poles?sort=rating  (S12: canonical to a redirect)
 
 import fs from 'node:fs';
 import { botInfo } from '../shared/bots.js';
@@ -89,8 +94,8 @@ function mulberry32(a) {
   };
 }
 // The generator every helper below draws from. withRandom() swaps in another
-// one for a while: the S8-S10 visits use their own, so adding them left the
-// draws of every other row as they were.
+// one for a while: the S8-S10 visits use their own, and so do S12's, so adding
+// them left the draws of every other row as they were.
 let source = mulberry32(SEED);
 const random = () => source();
 function withRandom(rng, fn) {
@@ -134,6 +139,7 @@ const T = {
   tentLaunch: ago(4),       // S9
   soldOut: ago(8),          // S10
   saleBanner: ago(10),      // S11
+  polesMove: ago(7),        // S12
 };
 // S4: 02:00-05:00 UTC on the calendar day 15 days ago.
 const outageDay = new Date(ago(15));
@@ -225,6 +231,7 @@ const HERO = {
   guide: `${HOST}/guides/how-to-choose-a-tent`,
   discontinued: `${HOST}/p/cascade-2p-ultralight-tent`,
   titleBug: `${HOST}/c/headlamps`,
+  moved: `${HOST}/c/trekking-poles`,
 };
 
 // S9: tents that launch during the dataset. They get scripted visits only, so
@@ -453,6 +460,14 @@ function buildSite() {
     });
   }
 
+  // S12: the trekking poles category's new URL, the old page under a new path.
+  // Added last and without drawing, like the S9 tents.
+  const poles = CAT_BY_SLUG.get('trekking-poles').page;
+  poles.movedTo = add('/c/hiking-poles', 'category', {
+    cat: poles.cat, movedFrom: poles, title: poles.title, desc: poles.desc,
+    h1: poles.h1, h2: poles.h2, sd: poles.sd, hreflang: true,
+  });
+
   return pages;
 }
 
@@ -465,6 +480,8 @@ function stateAt(page, t) {
   if (page.kind === 'dead') return { status: 404 };
   if (page.discontinued && t >= T.dead301) return { status: 301 };
   if (page.discontinued && t >= T.dead404) return { status: 404 };
+  // S12: the category moved; its old URL redirects to the new one.
+  if (page.movedTo && t >= T.polesMove) return { status: 301 };
   // S10: a sold-out product keeps answering 200 with a "not found" page.
   if (page.soldOut && t >= T.soldOut) {
     return {
@@ -617,7 +634,9 @@ function buildPickers(pages) {
   const buckets = {};
   const put = (name, page, w) => (buckets[name] ??= []).push([page, w]);
   for (const p of pages) {
-    if (p.hero || p.launched) continue; // the hero product (S7) and new tents (S9) only get scripted visits
+    // The hero product (S7), the new tents (S9) and the moved category's new
+    // URL (S12) only get scripted visits, or the traffic of the URL they replace.
+    if (p.hero || p.launched || p.movedFrom) continue;
     put(p.kind, p, p.w);
     if (p.kind === 'product') put('productHot', p, Math.pow(p.w, 1.8));
     if (p.kind === 'static' && ['shipping', 'returns', 'size-guide', 'warranty'].includes(p.slug)) put('staticHelp', p, 1);
@@ -696,6 +715,10 @@ function generateVisits(pages, pickers) {
   const visits = [];
   // `rng`: the generator the visit's row draws from, when not the shared one.
   const push = (bot, page, t, rng) => { if (t < NOW) visits.push({ bot, page, t, rng }); };
+  // S12: once the category moved, the links lead to its new URL, so the traffic
+  // the old URL would get goes there. Both answer 200 as a category page, so the
+  // row draws the same numbers as before.
+  const follow = (page, t) => (page.movedTo && t >= T.polesMove ? page.movedTo : page);
 
   for (const stream of STREAMS) {
     for (let k = 0; k < DAYS; k++) {
@@ -708,7 +731,7 @@ function generateVisits(pages, pickers) {
         // S4 aftermath: Googlebot backs off for two days after the outage.
         if (stream.googlebot && t >= OUTAGE.to && t < OUTAGE.to + 2 * DAY && chance(0.35)) continue;
         const bot = typeof stream.bot === 'function' ? stream.bot() : stream.bot;
-        push(bot, pickers[stream.profile](), t);
+        push(bot, follow(pickers[stream.profile](), t), t);
       }
     }
   }
@@ -718,7 +741,11 @@ function generateVisits(pages, pickers) {
       const start = ago(d) + random() * DAY / 2;
       const span = between(...b.hours) * HOUR;
       const n = Math.round(between(...b.count) * SCALE);
-      for (let i = 0; i < n; i++) push(b.bot, pickers[b.profile](), start + random() * span);
+      for (let i = 0; i < n; i++) {
+        const page = pickers[b.profile]();
+        const t = start + random() * span;
+        push(b.bot, follow(page, t), t);
+      }
     }
   }
 
@@ -787,6 +814,16 @@ function scriptedVisits(pages, push) {
     ownVisit(page.url, 'Bingbot', 5.2 - i * 0.4);
     if (i === 0) for (const d of [3.9, 0.9]) ownVisit(page.url, 'ChatGPT-User', d);
   }
+
+  // S12 draws from a generator of its own as well, so adding it changed no
+  // other row, S8-S10's included. Bots that know the old trekking poles URL come
+  // back to it and get the 301.
+  const s12 = mulberry32(SEED + 2);
+  const s12Visit = (url, bot, days) =>
+    withRandom(s12, () => push(typeof bot === 'function' ? bot() : bot, byUrl.get(url), at(days), s12));
+  for (const d of [6.4, 4.7, 2.9, 1.1]) s12Visit(HERO.moved, gbot, d);
+  for (const d of [5.6, 2.2]) s12Visit(HERO.moved, 'Bingbot', d);
+  s12Visit(HERO.moved, 'GPTBot', 3.5);
 }
 
 // =============================================================================

@@ -10,17 +10,16 @@ import { Dashboard } from "../core/registry.js";
 import { Chart } from "../core/chart.js";
 import { Provider } from "../core/provider.js";
 import { reportHeader } from "../core/report.js";
+import { withChangeEvents, changeMarkers } from "../core/changeMarkers.js";
 import { h, card, cssVar, dataTable, bucketBadge, deltaEl, fmtInt, fmtPct1, BUCKETS } from "../core/ui.js";
 import { StatCardsChart } from "../charts/statCardsChart.js";
 import { MovesChart } from "../charts/movesChart.js";
-import { IndexStatusTrendProvider } from "../providers/indexStatusTrendProvider.js";
-import { IndexStatusTrendChart } from "../charts/indexStatusTrendChart.js";
-import { CanonicalAnalysisProvider } from "../providers/canonicalAnalysisProvider.js";
-import { CanonicalAnalysisChart } from "../charts/canonicalAnalysisChart.js";
+import { TimeSeriesChart } from "../charts/timeSeriesChart.js";
+import { CanonicalSummaryChart, CanonicalTargetsChart, CanonicalProblemsChart } from "../charts/canonicalAnalysisChart.js";
 
 const indexationProvider = new Provider("indexation", "/api/indexation");
-const trendProvider = new IndexStatusTrendProvider();
-const canonicalProvider = new CanonicalAnalysisProvider();
+const trendProvider = new Provider("indexStatusTrend", "/api/index-status-trend");
+const canonicalProvider = new Provider("canonicalAnalysis", "/api/canonical-analysis");
 
 const sum = (list, key) => list.reduce((a, x) => a + x[key], 0);
 
@@ -56,6 +55,35 @@ function summaryCards(d) {
     },
   ];
 }
+
+// --- Verdicts day by day ----------------------------------------------------
+
+const windowName = (days) => (days === 1 ? "24 hours" : `${days} days`);
+
+// Change events of the fields that decide a verdict: the status code, then a
+// noindex, then the canonical (lib/sql.js PAGE_BUCKET_SQL).
+const verdictChanges = changeMarkers(["status", "meta_robots", "canonical"]);
+
+// Each bar counts the pages fetched in a window as long as the period, so the
+// last bar is the Indexability table. While the record is younger than the
+// window, the bars count fewer days of visits and read low.
+function trendSubtitle(d) {
+  const parts = [`pages bots fetched in the ${windowName(d.days)} up to each day, each by its newest visit`];
+  if (d.complete_from === null) parts.push("recording started inside that window, so the bars count fewer days");
+  if (verdictChanges(d).length) parts.push("dashed lines mark changes to status codes, robots tags and canonicals");
+  return parts.join("; ");
+}
+
+// The marker says the bars before it count fewer days, so it only shows when
+// there are such bars: not when the first bar's window is already recorded in
+// full (a custom period that starts at 00:00 UTC has complete_from on it).
+function windowMarkers(d) {
+  if (d.complete_from === null || !d.rows.length) return [];
+  const first = d.rows.reduce((min, r) => Math.min(min, r.t), Infinity);
+  return d.complete_from > first ? [{ t: d.complete_from, text: `${windowName(d.days)} recorded from here` }] : [];
+}
+
+const trendMarkers = (d) => [...windowMarkers(d), ...verdictChanges(d)];
 
 // --- One row per verdict ----------------------------------------------------
 
@@ -113,7 +141,9 @@ export function renderIndexation(outlet) {
   const buckets = h("div");
   const trend = h("div", { className: "section" });
   const canonical = h("div");
-  outlet.append(summary, h("div", { className: "grid-2" }, moves, buckets), trend, h("div", { className: "chart-pair" }, canonical));
+  const targets = h("div");
+  const problems = h("div", { className: "section" });
+  outlet.append(summary, h("div", { className: "grid-2" }, moves, buckets), trend, h("div", { className: "chart-pair" }, canonical, targets), problems);
 
   const dashboard = new Dashboard(globalRange);
   dashboard.add(new StatCardsChart(summary, indexationProvider, summaryCards));
@@ -124,8 +154,22 @@ export function renderIndexation(outlet) {
     })
   );
   dashboard.add(new BucketsChart(buckets, indexationProvider));
-  dashboard.add(new IndexStatusTrendChart(trend, trendProvider));
-  dashboard.add(new CanonicalAnalysisChart(canonical, canonicalProvider));
+  dashboard.add(
+    withChangeEvents(
+      new TimeSeriesChart(trend, trendProvider, {
+        title: "Indexability over time",
+        subtitle: trendSubtitle,
+        token: (key) => BUCKETS[key].token,
+        type: "bar",
+        markers: trendMarkers,
+        hideEmpty: true,
+        empty: "No page was fetched in this period.",
+      })
+    )
+  );
+  dashboard.add(new CanonicalSummaryChart(canonical, canonicalProvider));
+  dashboard.add(new CanonicalTargetsChart(targets, canonicalProvider));
+  dashboard.add(new CanonicalProblemsChart(problems, canonicalProvider));
   dashboard.start();
 
   return () => dashboard.destroy();

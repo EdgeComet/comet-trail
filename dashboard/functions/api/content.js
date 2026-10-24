@@ -6,8 +6,11 @@
 //   left        200 pages left out: noindex, or canonical to another URL
 //   tags        per tag: the cards (and `previous`, the same for the period
 //               before, null when it is not fully recorded), the verdicts with
-//               the demand on their pages, the duplicate groups with their
-//               cause, and the verdict moves since the previous period
+//               the demand on their pages, the pages longer than search
+//               results usually show (`chars`, information beside the
+//               verdicts; title and description only), the duplicate groups
+//               with their cause, and the verdict moves since the previous
+//               period
 //   alignment   title vs H1, one bucket per page
 //   checks      placeholder text and pages that read as "not found"
 // Two reads of the crawls table: this period and the one before.

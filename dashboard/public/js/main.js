@@ -5,6 +5,8 @@ import { Router } from "./core/router.js";
 import { globalRange } from "./core/dateRange.js";
 import { icon, fmtAgo, shortUrl } from "./core/ui.js";
 import { renderLogAnalyzer } from "./pages/logAnalyzer.js";
+import { renderStatusCodes } from "./pages/statusCodes.js";
+import { renderLoadingTime } from "./pages/loadingTime.js";
 import { renderAiBots } from "./pages/aiBots.js";
 import { renderIndexation } from "./pages/indexation.js";
 import { renderContent } from "./pages/content.js";
@@ -106,20 +108,31 @@ showSite(site);
 // A custom range must reach the first recorded visit (core/dateRange.js validate).
 globalRange.minTs = site?.first_ts ?? null;
 
+// A tab of a report keeps the report's sidebar link highlighted: the Log
+// Analyzer tabs sit under Overview, a page's time machine under Pages.
+const NAV = {
+  "/log-analyzer/status-codes": "/log-analyzer",
+  "/log-analyzer/loading-time": "/log-analyzer",
+  "/page": "/pages",
+};
+
 if (site && !site.last_ts) {
   // Fresh install: every route shows how to get the first visit recorded.
   const waiting = (outlet, params) => renderWaiting(outlet, params, site);
-  for (const path of ["/log-analyzer", "/ai-bots", "/indexation", "/content", "/changes", "/pages", "/page"]) {
-    router.add(path, waiting, "Waiting for bots", path === "/page" ? "/pages" : path);
+  const paths = ["/log-analyzer", "/log-analyzer/status-codes", "/log-analyzer/loading-time", "/ai-bots", "/indexation", "/content", "/changes", "/pages", "/page"];
+  for (const path of paths) {
+    router.add(path, waiting, "Waiting for bots", NAV[path] ?? path);
   }
 } else {
   router
     .add("/log-analyzer", renderLogAnalyzer, "Log Analyzer")
+    .add("/log-analyzer/status-codes", renderStatusCodes, "Status Codes", NAV["/log-analyzer/status-codes"])
+    .add("/log-analyzer/loading-time", renderLoadingTime, "Loading Time", NAV["/log-analyzer/loading-time"])
     .add("/ai-bots", renderAiBots, "AI Bots")
     .add("/indexation", renderIndexation, "Indexation")
     .add("/content", renderContent, "Content")
     .add("/changes", renderChanges, "Changes")
     .add("/pages", renderPages, "Pages")
-    .add("/page", renderPage, "Page", "/pages");
+    .add("/page", renderPage, "Page", NAV["/page"]);
 }
 router.start("/log-analyzer"); // default view (also normalizes "/")

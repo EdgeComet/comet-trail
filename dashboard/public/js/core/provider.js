@@ -33,8 +33,8 @@ export class Provider {
   }
 
   // Returns the parsed JSON for this range. Cache hit (unexpired) => no network.
-  // `extra` carries per-call params beyond the range (a search term, a URL) and
-  // is part of the cache key.
+  // `extra` carries per-call params beyond the range (a search term, a URL, a
+  // bot group) and is part of the cache key.
   async get(from, to, extra = {}) {
     const now = Date.now();
     const key = this._key(from, to, extra);
@@ -50,6 +50,14 @@ export class Provider {
     } finally {
       this._pending.delete(key);
     }
+  }
+
+  // The cached response for this range, or undefined when there is none yet:
+  // for a card that draws without it first and again once it is in
+  // (core/changeMarkers.js).
+  peek(from, to, extra = {}) {
+    const hit = this._cache.get(this._key(from, to, extra));
+    return hit && hit.expiresAt > Date.now() ? hit.data : undefined;
   }
 
   async _fetch(key, from, to, extra, now) {

@@ -1,5 +1,5 @@
 import { Chart } from "../core/chart.js";
-import { titledCard, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
+import { card, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
 
 // Response Status Distribution — a stack of labeled horizontal bars splitting
 // crawl responses into 2xx / 3xx / 4xx / 5xx, plus a gray "No response" row for
@@ -10,6 +10,7 @@ import { titledCard, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
 //
 // The four HTTP groups are fixed and always shown (even at 0%) so the card keeps
 // a consistent shape; "No response" only appears when it actually has rows.
+// The page may put a bot group switch in the header (`actions`, core/botGroup.js).
 const GROUPS = [
   { key: "2xx", digit: 2, mod: "bar-fill-success" },
   { key: "3xx", digit: 3, mod: "bar-fill-info" },
@@ -26,7 +27,7 @@ export class StatusDistributionChart extends Chart {
     // No data is not an error (a quiet range is normal) — neutral message, not
     // the red failure state. Mirrors botActivityChart's empty handling.
     if (!rows.length) {
-      this.el.replaceChildren(titledCard(TITLE, emptyMessage("No requests in this range.")));
+      this.el.replaceChildren(card({ title: TITLE, actions: this.actions }, emptyMessage("No requests from these bots in this period.")));
       return;
     }
 
@@ -66,7 +67,7 @@ export class StatusDistributionChart extends Chart {
       );
     }
 
-    this.el.replaceChildren(titledCard(TITLE, list));
+    this.el.replaceChildren(card({ title: TITLE, actions: this.actions }, list));
   }
 }
 

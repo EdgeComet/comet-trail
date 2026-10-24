@@ -179,9 +179,11 @@ function buildPopover(range, { onPreset, onCustom, onCancel }) {
 
 // The page chrome, as in the EdgeComet dashboard: a 60px header bar (title on
 // the left, actions and the period on the right), an optional 40px strip under
-// it, then a lead line saying what the report shows. Returns a fragment, so a
-// view appends it like one node.
-export function reportHeader({ title, subtitle = "", period = true, actions = null, strip = null }) {
+// it, then a lead line saying what the report shows. `filter` is a control at
+// the end of the lead line that applies to the whole view, such as the bot
+// switch of a Log Analyzer tab (core/botGroup.js viewBotGroup). Returns a
+// fragment, so a view appends it like one node.
+export function reportHeader({ title, subtitle = "", period = true, actions = null, strip = null, filter = null }) {
   const frag = document.createDocumentFragment();
   frag.append(
     h(
@@ -192,7 +194,9 @@ export function reportHeader({ title, subtitle = "", period = true, actions = nu
     )
   );
   if (strip) frag.append(reportStrip(strip));
-  if (subtitle) frag.append(h("p", { className: "report-lead", text: subtitle }));
+  const lead = subtitle ? h("p", { className: "report-lead", text: subtitle }) : null;
+  if (filter) frag.append(h("div", { className: "report-lead-row" }, lead, filter));
+  else if (lead) frag.append(lead);
   return frag;
 }
 

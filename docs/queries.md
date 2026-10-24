@@ -30,21 +30,55 @@ GROUP BY bot_name
 ORDER BY hits DESC;
 ```
 
-## Broken URLs Googlebot saw in the last 7 days
+## Crawl efficiency: where Googlebot's crawl went
+
+Crawl efficiency is the share of Googlebot Search requests whose visit received
+an indexable page, the Crawl Efficiency card on Log Analyzer > Overview. Each
+visit gets one verdict, in the order the dashboard uses (`dashboard/lib/sql.js`):
+the status code first, then a noindex, then the canonical. Every row other than
+`indexable` is crawl spent where Google cannot index anything.
 
 ```sql
-SELECT url, status,
-       datetime(ts/1000,'unixepoch') AS seen
+SELECT CASE
+         WHEN status IS NULL OR status >= 500 THEN 'server_error'
+         WHEN status >= 400 THEN 'client_error'
+         WHEN status >= 300 THEN 'redirect'
+         WHEN status <> 200 THEN 'other'
+         WHEN index_status = 'blocked_by_meta' THEN 'noindex'
+         WHEN index_status = 'non_canonical' THEN 'canonical'
+         ELSE 'indexable'
+       END AS verdict,
+       COUNT(*) AS requests,
+       ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct
 FROM crawls
 WHERE bot_name IN ('Googlebot', 'Googlebot-Smartphone')
-  AND status >= 400
+  AND ts > (unixepoch() - 30*86400) * 1000
+GROUP BY verdict
+ORDER BY requests DESC;
+```
+
+## Broken URLs Googlebot saw in the last 7 days
+
+The answers the Broken URLs table on Log Analyzer > Status Codes counts as
+failing: 404 Not Found, 410 Gone, a 5xx, or no response at all (`NULL`
+status). A 403 or a 429 rate limit is neither failing nor good there.
+
+```sql
+SELECT url,
+       COUNT(*)                                       AS failed_hits,
+       GROUP_CONCAT(DISTINCT IFNULL(status, 'none'))  AS answers,
+       datetime(MAX(ts)/1000,'unixepoch')             AS last_failed
+FROM crawls
+WHERE bot_name IN ('Googlebot', 'Googlebot-Smartphone')
+  AND (status IN (404, 410) OR status >= 500 OR status IS NULL)
   AND ts > (unixepoch() - 7*86400) * 1000
-ORDER BY ts DESC;
+GROUP BY url
+ORDER BY failed_hits DESC;
 ```
 
 ## URLs where the origin was unreachable (status IS NULL)
 
-A NULL `status` means the worker couldn't reach the origin at all — timeout,
+A NULL `status` means the worker couldn't reach the origin at all: timeout,
 DNS error, TLS failure, etc. These rows are usually the most actionable.
 
 ```sql
@@ -77,6 +111,67 @@ WHERE canonical IS NULL
 ORDER BY url;
 ```
 
+## Canonicals that point to a page that is not indexable
+
+The Where canonicals lead card on Evergreen Crawl > Indexation: every page
+whose newest settled visit in the last 30 days answered 200 with a canonical to
+another URL, grouped by what that target got on its own newest settled visit.
+A settled visit is one that got an answer other than a 429 or a 5xx, so one
+failed fetch does not decide a page. The dashboard also resolves relative
+canonicals; this query compares them as written.
+
+```sql
+WITH latest AS (
+  SELECT url, status, index_status, canonical,
+         ROW_NUMBER() OVER (PARTITION BY url ORDER BY
+           CASE WHEN status IS NULL OR status = 429 OR status >= 500 THEN 1 ELSE 0 END, ts DESC) AS rn
+  FROM crawls
+  WHERE ts > (unixepoch() - 30*86400) * 1000
+),
+pointing AS (
+  SELECT p.url, p.canonical AS target,
+         CASE
+           WHEN t.url IS NULL THEN 'not fetched'
+           WHEN t.status >= 300 AND t.status < 400 THEN 'redirect'
+           WHEN t.status IS NULL OR t.status <> 200 THEN 'error'
+           WHEN t.index_status = 'blocked_by_meta' THEN 'noindex'
+           WHEN t.index_status = 'non_canonical' THEN 'chain'
+           ELSE 'indexable'
+         END AS target_verdict
+  FROM latest p
+  LEFT JOIN latest t ON t.url = p.canonical AND t.rn = 1
+  WHERE p.rn = 1 AND p.status = 200
+    AND p.canonical IS NOT NULL AND p.canonical <> p.url
+)
+SELECT target_verdict, target, COUNT(*) AS pages
+FROM pointing
+WHERE target_verdict <> 'indexable'
+GROUP BY target_verdict, target
+ORDER BY pages DESC;
+```
+
+## Titles and descriptions longer than search results usually show
+
+The character counts on Evergreen Crawl > Content: a title over 60 characters
+or a meta description over 160 runs past what a result usually shows. They are
+counted beside the verdicts, which stay word-based. Only indexable pages are
+graded, each by its newest settled visit in the last 30 days.
+
+```sql
+WITH latest AS (
+  SELECT url, status, index_status, trim(title) AS title, trim(meta_description) AS description,
+         ROW_NUMBER() OVER (PARTITION BY url ORDER BY
+           CASE WHEN status IS NULL OR status = 429 OR status >= 500 THEN 1 ELSE 0 END, ts DESC) AS rn
+  FROM crawls
+  WHERE ts > (unixepoch() - 30*86400) * 1000
+)
+SELECT url, length(title) AS title_chars, length(description) AS description_chars, title
+FROM latest
+WHERE rn = 1 AND status = 200 AND index_status = 'indexable'
+  AND (length(title) > 60 OR length(description) > 160)
+ORDER BY title_chars DESC;
+```
+
 ## Latest snapshot per URL (collapse the time machine)
 
 ```sql
@@ -89,7 +184,7 @@ JOIN (
 ORDER BY c.url;
 ```
 
-## Hreflang coverage — expand the JSON array
+## Hreflang coverage: expand the JSON array
 
 ```sql
 SELECT c.url,
@@ -117,17 +212,63 @@ JOIN ranked b ON a.url = b.url AND a.rn = 1 AND b.rn = 2
 WHERE a.h1 != b.h1;
 ```
 
-## Slowest pages for Googlebot
+## Canonical changes per day, and what they did to indexability
+
+How Evergreen Crawl > Changes finds a change: each 200 visit is compared with
+the visit before it to the same URL. A day when many pages changed their
+canonical is usually a release; the Changes page groups such days into events
+and marks the biggest on the Overview, Indexation and Status Codes charts, red
+when most of their changes cost pages their indexability, green when most gave
+it back.
+One `LAG` of a JSON array, rather than one `LAG` per column, keeps the reads
+down: D1 counts a pass over the rows for every `LAG`. The 60 days give each
+page of the last 30 a visit to compare with.
 
 ```sql
+WITH v AS (
+  SELECT url, ts, canonical, index_status,
+         LAG(json_array(canonical, index_status)) OVER (PARTITION BY url ORDER BY ts) AS prev
+  FROM crawls
+  WHERE status = 200 AND ts > (unixepoch() - 60*86400) * 1000
+)
+SELECT date(ts/1000, 'unixepoch') AS day,
+       COUNT(DISTINCT url) AS pages,
+       COUNT(DISTINCT CASE WHEN index_status <> 'indexable'
+                            AND json_extract(prev, '$[1]') = 'indexable' THEN url END) AS lost_indexability,
+       COUNT(DISTINCT CASE WHEN index_status = 'indexable'
+                            AND json_extract(prev, '$[1]') <> 'indexable' THEN url END) AS regained
+FROM v
+WHERE prev IS NOT NULL
+  AND canonical IS NOT json_extract(prev, '$[0]')
+  AND ts > (unixepoch() - 30*86400) * 1000
+GROUP BY day
+ORDER BY day;
+```
+
+## Slowest pages for Googlebot
+
+The Slowest URLs table on Log Analyzer > Loading Time: the median and 95th
+percentile response time of each URL Googlebot fetched at least five times in
+the last 30 days, so a slow hit or two does not rank a page. Each percentile is
+the time at rank ceil(p * n) among the URL's n visits, ordered by time.
+
+```sql
+WITH ranked AS (
+  SELECT url, response_time_ms,
+         ROW_NUMBER() OVER (PARTITION BY url ORDER BY response_time_ms) AS rn,
+         COUNT(*)     OVER (PARTITION BY url)                           AS n
+  FROM crawls
+  WHERE bot_name IN ('Googlebot', 'Googlebot-Smartphone')
+    AND ts > (unixepoch() - 30*86400) * 1000
+)
 SELECT url,
-       MAX(response_time_ms) AS slowest_ms,
-       AVG(response_time_ms) AS avg_ms,
-       COUNT(*)              AS hits
-FROM crawls
-WHERE bot_name IN ('Googlebot', 'Googlebot-Smartphone') AND status = 200
+       MIN(CASE WHEN rn >= 0.5  * n THEN response_time_ms END) AS median_ms,
+       MIN(CASE WHEN rn >= 0.95 * n THEN response_time_ms END) AS p95_ms,
+       COUNT(*)                                                AS visits
+FROM ranked
 GROUP BY url
-ORDER BY slowest_ms DESC
+HAVING visits >= 5
+ORDER BY median_ms DESC
 LIMIT 20;
 ```
 

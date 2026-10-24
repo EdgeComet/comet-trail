@@ -1,11 +1,12 @@
 import { Chart } from "../core/chart.js";
-import { titledCard, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
+import { card, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
 
 // Response Time Distribution — a stack of labeled horizontal bars splitting
 // crawls into five fixed speed bands by response_time_ms, with each band's
-// request count beneath the bar and an average footer below the list. Fed by
-// ResponseTimeProvider (/api/response-time-distribution), which returns
-// { buckets: [{ key, c }], avg_ms, total } with the bands already ordered.
+// request count beneath the bar and a footer with the median and the 95th
+// percentile below the list. Fed by ResponseTimeProvider
+// (/api/response-time-distribution), which returns { buckets: [{ key, c }],
+// median_ms, p95_ms, total } with the bands already ordered.
 // Reuses the bar-list component (styles.css .bar-*) the status chart established.
 //
 // Colors run a green->red speed gradient: the two fast bands green, then amber,
@@ -13,6 +14,7 @@ import { titledCard, emptyMessage, fmtCompact, fmtPct } from "../core/ui.js";
 // source of the row labels and is paired with the backend's buckets BY INDEX
 // (both are fixed, same-length, same-order), so a label can change for display
 // without silently breaking the count it maps to.
+// The page may put a bot group switch in the header (`actions`, core/botGroup.js).
 const BANDS = [
   { label: "<0.5s",  mod: "bar-fill-success" },
   { label: "0.5-1s", mod: "bar-fill-success" },
@@ -34,7 +36,7 @@ export class ResponseTimeChart extends Chart {
     // never fires — a quiet range is total === 0. No data is not an error;
     // mirror the status chart's neutral empty message, not the red failure state.
     if (!data.total) {
-      this.el.replaceChildren(titledCard(TITLE, emptyMessage("No requests in this range.")));
+      this.el.replaceChildren(card({ title: TITLE, actions: this.actions }, emptyMessage("No requests from these bots in this period.")));
       return;
     }
 
@@ -49,13 +51,13 @@ export class ResponseTimeChart extends Chart {
 
     const footer = document.createElement("div");
     footer.className = "bar-footer";
-    footer.textContent = `Avg: ${fmtDuration(data.avg_ms)}`;
+    footer.textContent = `Median ${fmtDuration(data.median_ms)} · 95th percentile ${fmtDuration(data.p95_ms)}`;
 
-    // titledCard appends a single node into its body, so wrap list + footer.
+    // One body node holding the list and the footer.
     const body = document.createElement("div");
     body.append(list, footer);
 
-    this.el.replaceChildren(titledCard(TITLE, body));
+    this.el.replaceChildren(card({ title: TITLE, actions: this.actions }, body));
   }
 }
 
@@ -93,7 +95,7 @@ function barRow(band, count, denom) {
   const meta = document.createElement("div");
   meta.className = "bar-meta";
   const span = document.createElement("span");
-  span.textContent = `${fmtCompact(count)} requests`;
+  span.textContent = `${fmtCompact(count)} request${count === 1 ? "" : "s"}`;
   meta.appendChild(span);
 
   row.append(main, meta);
